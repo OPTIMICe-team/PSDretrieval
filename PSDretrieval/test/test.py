@@ -1,5 +1,11 @@
 from PSDretrieval import processRadar as pR
+import matplotlib.pyplot as plt
 
-SpecWindow  = pR.loadSpectra(loadSample=True)
+#load spectra
+SpecWindow  = pR.loadSpectra()
+SpecSingle  = pR.selectSingleTimeHeight(SpecWindow)
 
-print(SpecWindow)
+#plot Spectra
+fig,ax = plt.subplots(nrows=1,ncols=1)
+ax = pR.plotObsSpectra(SpecSingle,ax)
+

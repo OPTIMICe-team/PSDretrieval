@@ -11,7 +11,10 @@ setup(name='PSDretrieval',
     author='Markus Karrer',
     author_email='karrer.markus@web.de',
     url='https://github.com/markuskarrer/PSDretrieval',
-    packages=['PSDretrieval'],
+    packages= ['PSDretrieval'],
+    package_data = {
+        '': ['sample_data'],
+    },
     long_description = long_description,
     license = 'GPL'
      )
