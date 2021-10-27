@@ -1,5 +1,5 @@
-import PSDretrieval.processRadar as pR
+from PSDretrieval import processRadar as pR
 
-print(pR)
+SpecWindow  = pR.loadSpectra(loadSample=True)
 
-pR.loadSpectra()
+print(SpecWindow)

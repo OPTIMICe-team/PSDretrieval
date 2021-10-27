@@ -7,11 +7,13 @@ long_description = """PSDretrieval retrieves the particle size distribution from
 """
 
 setup(name='PSDretrieval',
-      description='PSD retrieval',
-      author='Markus Karrer',
-      author_email='karrer.markus@web.de',
-      url='https://github.com/markuskarrer/PSDretrieval',
-      packages=['PSDretrieval'],
-      long_description = long_description,
-      license = 'GPL'
+    description='PSD retrieval',
+    author='Markus Karrer',
+    author_email='karrer.markus@web.de',
+    url='https://github.com/markuskarrer/PSDretrieval',
+    packages=['PSDretrieval'],
+    long_description = long_description,
+    license = 'GPL'
      )
+
+
