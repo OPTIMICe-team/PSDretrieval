@@ -1,7 +1,9 @@
 from PSDretrieval import processRadar as pR
 from PSDretrieval import plotting as pl
 from PSDretrieval import scattering as sc
+from PSDretrieval import retrievalUtils as rU
 import matplotlib.pyplot as plt
+from snowScatt import snowMassVelocityArea
 
 #load spectra
 SpecWindow  = pR.loadSpectra()
@@ -15,6 +17,11 @@ ax = pl.plotSpectralDWR(SpecSingle.DWR_Ka_W,ax)
 #get scattering properties
 particleType = "vonTerzi_mixcoldend"
 DWRxk,DWRkw,Dmax = sc.getDWRs(particleType)
-DWRkwUnamb = sc.getUnambigousDWRdmax(Dmax,DWRkw,DmaxRetr=5e-3,DWRlowDetect=1.,showIllus=False,ax=ax)
+DWRkwUnamb,__ = sc.getUnambigousDWRdmax(Dmax,DWRkw,DmaxRetr=5e-3,DWRlowDetect=1.,showIllus=False,ax=ax)
 
+#get Dmax from sDWR (spectral resolved)
+DmaxfromDWR = rU.getDmaxFromSDWR(SpecSingle.DWR_Ka_W,DWRkwUnamb,Dmax,showIllus=True,ax=None)
+
+#get mass from Dmax
+mass, __, __ = snowMassVelocityArea(DmaxfromDWR, particleType)
 

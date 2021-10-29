@@ -66,6 +66,9 @@ def getUnambigousDWRdmax(Dmax,DWR,DmaxRetr=5e-3,DWRlowDetect=1,showIllus=False,a
         
         DmaxRetr:       #[m] maximum size considered in retrieval; this inexplicitly assumes that larger particles are not relevant
         DWRlowDetect:   #[dB] DWRs smaller than this are disregarded (detection limit)
+    
+        showIllus: create a plot to illustrate this function
+        ax: axes (has to be given if showIllus=True)
     '''
 
     #mask large sizes
@@ -97,4 +100,4 @@ def getUnambigousDWRdmax(Dmax,DWR,DmaxRetr=5e-3,DWRlowDetect=1,showIllus=False,a
     else:
         ax = None
     
-    return DWR,ax
+    return DWRUnamb,ax
