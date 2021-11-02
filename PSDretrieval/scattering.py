@@ -8,27 +8,34 @@ import numpy as np
 import pandas as pd
 import snowScatt
 
-def dB(x):
+def dB(x): #conversion: linear [mm**6/m**3] to logarithmic [dB]
     return 10.0*np.log10(x)
 
-def Bd(x):
+def Bd(x): #conversion: logarithmic [dB] to linear [mm*6/m**3]
     return 10.0**(0.1*x)
 
-def singlePsd(Ds, i):
+def singlePsd(Ds, i): #monodisperse PSD
     psd = np.zeros_like(Ds)
     psd[i]=1
     return psd
 
-def model3fOne(particleName):
+def model3fOne(particleName,Dmax=np.linspace(0.3e-3, 20.0e-3, 2000),lindB="dB"):
     '''
     get single-particle reflectivity, velocity and dielectric factor
 
-    particleName: name of particle types in snowscatt (see snowScatt.snowLibrary.info() for list of all available particle types)
+    ARGUMENTS:
+        particleName: name of particle types in snowscatt (see snowScatt.snowLibrary.info() for list of all available particle types)
+    OPTIONAL:
+        Dmax: [m] array of maximum dimensions
+        lindB: ["lin","dB"] return Ze either in linear units or in dB
+    RETURNS:
+        reflectivity in X-,Ka- and W-Band
+        ZxOne, ZkOne, ZwOne, Dmax, K2, vel #ssvel is not wavelength-dependent
     '''
+
     frequencies =  np.array([9.4e9, 35.6e9, 94.0e9])
     temperature = 270.0
 
-    Dmax = np.linspace(0.3e-3, 20.0e-3, 2000) # list of sizes
     particle = particleName
 
     bck = pd.DataFrame(index=Dmax, columns=frequencies)
@@ -46,8 +53,14 @@ def model3fOne(particleName):
     ZxOne =  np.array([(1.0e18*bck.iloc[:, 0]*singlePsd(Dmax, i)).sum() for i in range(len(Dmax))])
     ZkOne =  np.array([(1.0e18*bck.iloc[:, 1]*singlePsd(Dmax, i)).sum() for i in range(len(Dmax))])
     ZwOne =  np.array([(1.0e18*bck.iloc[:, 2]*singlePsd(Dmax, i)).sum() for i in range(len(Dmax))])
-    
-    return dB(ZxOne), dB(ZkOne), dB(ZwOne), Dmax, K2, ssvel #ssvel is not wavelength-dependent
+   
+    if lindB=="dB": 
+        return dB(ZxOne), dB(ZkOne), dB(ZwOne), Dmax, K2, ssvel #ssvel is not wavelength-dependent
+    elif lindB=="lin":
+        return ZxOne, ZkOne, ZwOne, Dmax, K2, ssvel #ssvel is not wavelength-dependent
+    else:
+        print("lindB must be either lin or dB")
+        sys.exit()
 
 def getDWRs(particleType):
     '''
@@ -69,6 +82,9 @@ def getUnambigousDWRdmax(Dmax,DWR,DmaxRetr=5e-3,DWRlowDetect=1,showIllus=False,a
     
         showIllus: create a plot to illustrate this function
         ax: axes (has to be given if showIllus=True)
+    RETURN:
+        DWRUnamb: range of DWRs which are unambiguous
+        ax: axes handle (None if showIllus=False)
     '''
 
     #mask large sizes
@@ -96,8 +112,31 @@ def getUnambigousDWRdmax(Dmax,DWR,DmaxRetr=5e-3,DWRlowDetect=1,showIllus=False,a
         ax.set_xlim([5e-1,1e1])
         ax.set_ylim([0,np.max(DWR)*1.1])
         ax.set_xlabel("Dmax [mm]")
-        ax.set_ylabel("DWR [dB]")
-    else:
-        ax = None
+        ax.set_ylabel("sDWR [dB]")
     
     return DWRUnamb,ax
+
+def getSinglePartRefl(particleType,Dmax,freq="k"):
+    ''' 
+    get the Single particle reflectivity (wrapper around model3fOne)
+
+    ARGUMENTS:
+        particle type: particle type in snowScatt (see snowScatt.snowLibrary.info() to get a list)
+        Dmax: array of maximum dimensions (does not need to be increasing)
+    OPTIONAL: 
+        freq: [x,k,w] short name of the frequency
+    RETURN:
+        ZoneMak0: single particle reflectivity
+    '''
+
+    #get the single particle reflectivity
+    ZxOne,ZkOne,ZwOne,Dmax,K2,ssvel = model3fOne(particleType,Dmax=Dmax,lindB="lin")
+    if freq=="x":
+        Zone = ZxOne
+    elif freq=="k":
+        Zone = ZkOne
+    elif freq=="w":
+        Zone = ZwOne
+    ZoneMask0 = np.ma.masked_where(Zone==0,Zone)
+
+    return ZoneMask0
