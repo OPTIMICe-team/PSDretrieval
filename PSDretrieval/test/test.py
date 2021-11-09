@@ -9,24 +9,34 @@ from snowScatt import snowMassVelocityArea
 #load spectra
 SpecWindow  = pR.loadSpectra()
 SpecSingle  = pR.selectSingleTimeHeight(SpecWindow)
+DWRkey="DWR_X_Ka"
 
 #plot Spectra and sDWR
 fig,ax = plt.subplots(nrows=1,ncols=1)
-ax = pl.plotObsSpectra(SpecSingle,ax)
-ax = pl.plotSpectralDWR(SpecSingle.DWR_Ka_W,ax)
+fig2,axes = plt.subplots(nrows=1,ncols=3)
+__ = pl.plotObsSpectra(SpecSingle,ax)
+__ = pl.plotSpectralDWR(SpecSingle[DWRkey],ax)
 
 #get scattering properties
 particleType = "vonTerzi_mixcoldend"
 DWRxk,DWRkw,Dmax = sc.getDWRs(particleType)
-DWRkwUnamb,__ = sc.getUnambigousDWRdmax(Dmax,DWRkw,DmaxRetr=5e-3,DWRlowDetect=1.,showIllus=False,ax=ax)
+if DWRkey=="DWR_Ka_W":
+    DWR = DWRkw
+    DmaxRetr = 5e-3 #[m] maximum size considered in retrieval; this inexplicitly assumes that larger particles are not relevant
+elif DWRkey=="DWR_X_Ka":
+    DWR = DWRxk
+    DmaxRetr = 1e-2 #[m] maximum size considered in retrieval; this inexplicitly assumes that larger particles are not relevant
+
+
+DWRUnamb,__ = sc.getUnambigousDWRdmax(Dmax,DWR,DmaxRetr=DmaxRetr,DWRlowDetect=1.,showIllus=False)
 
 #get Dmax from sDWR (spectral resolved)
-DmaxfromDWR = rU.getDmaxFromSDWR(SpecSingle.DWR_Ka_W,DWRkwUnamb,Dmax,showIllus=True,ax=None)
+DmaxfromDWR = rU.getDmaxFromSDWR(SpecSingle[DWRkey],DWRUnamb,Dmax,showIllus=False)
 
 #get the single particle reflectivity
 ZkOne = sc.getSinglePartRefl(particleType,DmaxfromDWR,freq="k")
 
 #get the number concentration from the spectrum and the single particle scattering properties at the given Doppler velocity bin
-Nnorm,ax = rU.calcNumberConcFromSpectrumAndZOne(SpecSingle.KaSpecH,ZkOne,showIllus=False,ax=None)
+Nnorm,__ = rU.calcNumberConcFromSpectrumAndZOne(SpecSingle.KaSpecH,ZkOne,showIllus=False)
 
-ax = rU.histDWRandDmaxVsDv(SpecWindow.DWR_Ka_W,SpecWindow.KaSpecH,SpecWindow.KaSpecHspecNoise,aboveNoiseThreshold=30)
+__ = rU.histDWRandDmaxVsDv(SpecWindow[DWRkey],SpecWindow.KaSpecH,SpecWindow.KaSpecHspecNoise,DWRUnamb,Dmax,aboveNoiseThreshold=15,showIllus=True,ax=axes,fig=fig)

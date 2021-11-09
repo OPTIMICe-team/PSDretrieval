@@ -13,12 +13,12 @@ def findNearest(array, value):
     idx = (np.abs(array - value)).argmin()
     return idx
 
-def getDmaxFromSDWR(sDWRobs,sDWRmod,Dmax,showIllus=True,ax=None):
+def getDmaxFromSDWR(sDWRobs,sDWRmod,Dmax,showIllus=False,ax=None):
     '''
     return a Dmax for DWR(DV)
 
     ARGUMENTS:
-        sDWRobs: spectral DWR from the spectrum
+        sDWRobs: spectral DWR from the spectrum (must be xarray for plotting; can also be np.darray for calculation only)
         sDWRmod: spectral DWR from the scattering database (snowScatt)
         Dmax:    Dmax corresponding to sDWRmod
     OPTIONAL: 
@@ -29,7 +29,16 @@ def getDmaxFromSDWR(sDWRobs,sDWRmod,Dmax,showIllus=True,ax=None):
     '''
 
     DmaxfromDWR = np.ones_like(sDWRobs)*np.nan #initialize Dmax(DWR)
-    for i,(sDWRnow,DV) in enumerate(zip(sDWRobs.values,sDWRobs.doppler)):
+    if not isinstance(sDWRobs, np.ndarray):
+        try:
+            sDWRobsvals = sDWRobs.values
+        except: 
+            print("sDWRobs in retrievalUtils.getDmaxFromSDWR must be either a np.ndarray of xarray variable")
+            sys.exit(0)
+    else:
+        sDWRobsvals = sDWRobs
+
+    for i,sDWRnow in enumerate(sDWRobsvals):
         if sDWRnow<np.nanmax(sDWRmod) and sDWRnow>np.nanmin(sDWRmod): #are we in the unambigious range?
             idx = findNearest(sDWRmod,sDWRnow)
             DmaxfromDWR[i] = Dmax[idx]
@@ -37,10 +46,13 @@ def getDmaxFromSDWR(sDWRobs,sDWRmod,Dmax,showIllus=True,ax=None):
             DmaxfromDWR[i] = np.nan    
         
     if showIllus:
-        fig,ax = plt.subplots(nrows=1,ncols=1)
-        ax.plot(-sDWRobs.doppler[::-1],DmaxfromDWR[::-1]*1e3)
-        plt.xlabel("DV [m/s]")
-        plt.ylabel("Dmax [mm]")
+        if isinstance(sDWRobs, np.ndarray):
+            print("plotting currently only possible with xarray -> skip plotting")
+        else:
+            fig,ax = plt.subplots(nrows=1,ncols=1)
+            ax.plot(-sDWRobs.doppler[::-1],DmaxfromDWR[::-1]*1e3)
+            plt.xlabel("DV [m/s]")
+            plt.ylabel("Dmax [mm]")
 
     return DmaxfromDWR
 
@@ -69,7 +81,22 @@ def calcNumberConcFromSpectrumAndZOne(Zobs,Zone,showIllus=False,ax=None):
 
     return Nnorm,ax
 
-def histDWRandDmaxVsDv(xrDWR,Spec,SpecNoise,aboveNoiseThreshold=30,showIllus=False,ax=None,fig=None):
+
+def func(x, a, b):
+    return a * x ** b
+
+def fitting2D(xx, yy,p0=[8.57,0.393]): #,p0):
+    from scipy.optimize import curve_fit
+    xx[np.isnan(yy)] = np.nan
+    yy[np.isnan(xx)] = np.nan
+    xx = xx[np.isfinite(xx)]
+    yy = yy[np.isfinite(yy)]
+    popt, pcov = curve_fit(func, xx, yy) #,p0[0],p0[1])
+    [coeff_a,coeff_b] = popt[0],popt[1]
+    #[coeff_a,coeff_b] = p0[0],p0[1]
+    return coeff_a,coeff_b
+
+def histDWRandDmaxVsDv(xrDWR,Spec,SpecNoise,DWRUnamb,Dmax,aboveNoiseThreshold=30,showIllus=False,ax=None,fig=None):
     '''
         plot DWR and Dmax vs Doppler velocity
         and fit a power-law to vterm(Dmax)
@@ -77,6 +104,8 @@ def histDWRandDmaxVsDv(xrDWR,Spec,SpecNoise,aboveNoiseThreshold=30,showIllus=Fal
         xrDWR: x-array variable which contains the DWR values and the doppler velocity (xrDWR.doppler)
         Spec: spectral power (carefully choose the frequency - probably the one with the lowest sensitivity is the best)
         SpecNoise: Noise level (same frequency as Spec!)
+        DWRUnamb: modeled unambigious DWR array
+        Dmax: maximum dimension array corresponding to DWRUnamb
     OPTIONAL:
         aboveNoiseThreshold: dismiss all DV sections where the reflectivity is less than 30dBz above the noise threshold
         showIllus: create a plot to illustrate this function
@@ -94,15 +123,50 @@ def histDWRandDmaxVsDv(xrDWR,Spec,SpecNoise,aboveNoiseThreshold=30,showIllus=Fal
     KaGTnoiseFlag = (Spec>(SpecNoise+aboveNoiseThreshold)).values.flatten()
     y_hist[~KaGTnoiseFlag] = np.nan
 
+
     if showIllus:
         import matplotlib as mpl
         import copy
         my_cmap = copy.copy(mpl.cm.get_cmap('jet')) # copy the default cmap
         my_cmap.set_under("w",1)
-        hist,xedge,yedge,im = ax.hist2d(x_hist,y_hist,bins=30,range=[[-0.5,2],[-2,17]],cmap=my_cmap,vmin=1) #somehow both: "set_under" and "vmin" is necessary
-        cbar = fig.colorbar(im,ax=ax)
-        cbar.set_label("counts")
-        ax.set_xlabel("DV [m/s]")
-        ax.set_ylabel("sDWR$_{Ka,W}$ [kg]")
 
-    return ax
+        hist,xedge,yedge,im = ax[0].hist2d(x_hist,y_hist,bins=30,range=[[-0.5,2],[-2,17]],cmap=my_cmap,vmin=1) #somehow both: "set_under" and "vmin" is necessary
+        cbar = fig.colorbar(im,ax=ax[0])
+        cbar.set_label("counts")
+        ax[0].set_xlabel("DV [m/s]")
+        ax[0].set_ylabel("sDWR [dB]")
+    else:
+        
+        hist,xedge,yedge = np.histogram2d(x_hist,y_hist,bins=30,range=[[-0.5,2],[-2,17]])
+
+    yedgeDmax = getDmaxFromSDWR(yedge,DWRUnamb,Dmax) #calculate Dmax corresponding to the yedge-DWR array
+    yhistDmax = getDmaxFromSDWR(y_hist,DWRUnamb,Dmax) #calculate Dmax corresponding to the y_hist-DWR array
+
+    if showIllus:
+        yedgeDmaxMatrix             = np.reshape(np.tile(yedgeDmax,xedge.shape[0]),(xedge.shape[0],yedge.shape[0])) #create array with dimension [xedge,yedge]
+        yedgeDmaxValid              = yedgeDmax[yedgeDmax>0] #remove nans from yedgeDmax
+        #yedgeDmaxMatrixValidOnly    = np.reshape(np.tile(yedgeDmaxValid,xedge.shape[0]),(xedge.shape[0],yedgeDmaxValid.shape[0])) #same as yedgeDmaxMatrix but only with valid values
+
+        histValidDmax = hist[:,np.where(~np.isnan(yedgeDmax))[0]] #hist[~np.isnan(yedgeDmaxMatrix[:-1,:-1])]
+        #histMaskedDmaxValid = np.ma.masked_where(np.isnan(yedgeDmaxMatrix[:-1,:-1]),hist)
+        #histMaskedDmaxValid = histMaskedDmaxValid[histMaskedDmaxValid>0]
+        print(xedge.shape,yedgeDmaxValid.shape,histValidDmax.shape)
+        ax[1].pcolor(xedge[:-1],yedgeDmaxValid*1e3,np.transpose(histValidDmax),cmap=my_cmap,vmin=1)
+        cbar.set_label("counts")
+        ax[1].set_xlabel("DV [m/s]")
+        ax[1].set_ylabel("D$_{max}$ [mm]")
+        #ax[1].set_ylim([1e3*min(yedgeDmaxValid),1e3*max(yedgeDmaxValid)]) #TODO: why doesnt this work??
+        ax[1].set_ylim(bottom=1e3*min(yedgeDmaxValid),top=12.)
+        #ax[1].set_yscale('log')
+        plt.tight_layout()
+
+        [a_fit,b_fit] = fitting2D(yhistDmax,x_hist)
+        print(a_fit,b_fit)
+        #ax[1].plot(xedge[:-1],1./a_fit*xedge[:-1]**(1./b_fit))
+        DmaxFitEval = np.linspace(1e-4,1e-2,100) #simple Dmax-array to evaluate the fit 
+        ax[2].plot(DmaxFitEval*1e3,a_fit*DmaxFitEval**b_fit)
+        ax[2].set_xlabel("D$_{max}$ [mm]")
+        ax[2].set_ylabel("v$_{term}$ [m/s]")
+        #import pdb; pdb.set_trace()
+
+    return ax,hist,xedge,yedge
