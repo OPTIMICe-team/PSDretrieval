@@ -51,7 +51,6 @@ def model3fOne(particleName,Dmax=np.linspace(0.3e-3, 20.0e-3, 2000),lindB="dB",K
         elif Kfreq=="W":
             eps = snowScatt.refractiveIndex.water.eps(temperature, frequencies[2], 'Turner')
         K2 = snowScatt.refractiveIndex.utilities.K2(eps)
-        print(freq,K2)
         #get backscatter and velocity from database
         ssCbck, ssvel = snowScatt.backscatVel(diameters=Dmax,
                                               wavelength=wl,

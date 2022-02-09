@@ -85,15 +85,14 @@ def calcNumberConcFromSpectrumAndZOne(Zobs,Zone,showIllus=False,ax=None):
 def func(x, a, b):
     return a * x ** b
 
-def fitting2D(xx, yy,p0=[8.57,0.393]): #,p0):
+def fitting2D(xx, yy,p0=[8.57,0.393]):
     from scipy.optimize import curve_fit
     xx[np.isnan(yy)] = np.nan
     yy[np.isnan(xx)] = np.nan
     xx = xx[np.isfinite(xx)]
     yy = yy[np.isfinite(yy)]
-    popt, pcov = curve_fit(func, xx, yy) #,p0[0],p0[1])
+    popt, pcov = curve_fit(func, xx, yy)
     [coeff_a,coeff_b] = popt[0],popt[1]
-    #[coeff_a,coeff_b] = p0[0],p0[1]
     return coeff_a,coeff_b
 
 def histDWRandDmaxVsDv(xrDWR,Spec,SpecNoise,DWRUnamb,Dmax,aboveNoiseThreshold=30,showIllus=False,ax=None,fig=None):
@@ -145,11 +144,8 @@ def histDWRandDmaxVsDv(xrDWR,Spec,SpecNoise,DWRUnamb,Dmax,aboveNoiseThreshold=30
     if showIllus:
         yedgeDmaxMatrix             = np.reshape(np.tile(yedgeDmax,xedge.shape[0]),(xedge.shape[0],yedge.shape[0])) #create array with dimension [xedge,yedge]
         yedgeDmaxValid              = yedgeDmax[yedgeDmax>0] #remove nans from yedgeDmax
-        #yedgeDmaxMatrixValidOnly    = np.reshape(np.tile(yedgeDmaxValid,xedge.shape[0]),(xedge.shape[0],yedgeDmaxValid.shape[0])) #same as yedgeDmaxMatrix but only with valid values
 
-        histValidDmax = hist[:,np.where(~np.isnan(yedgeDmax))[0]] #hist[~np.isnan(yedgeDmaxMatrix[:-1,:-1])]
-        #histMaskedDmaxValid = np.ma.masked_where(np.isnan(yedgeDmaxMatrix[:-1,:-1]),hist)
-        #histMaskedDmaxValid = histMaskedDmaxValid[histMaskedDmaxValid>0]
+        histValidDmax = hist[:,np.where(~np.isnan(yedgeDmax))[0]] 
         print(xedge.shape,yedgeDmaxValid.shape,histValidDmax.shape)
         ax[1].pcolor(xedge[:-1],yedgeDmaxValid*1e3,np.transpose(histValidDmax),cmap=my_cmap,vmin=1)
         cbar.set_label("counts")
@@ -157,16 +153,14 @@ def histDWRandDmaxVsDv(xrDWR,Spec,SpecNoise,DWRUnamb,Dmax,aboveNoiseThreshold=30
         ax[1].set_ylabel("D$_{max}$ [mm]")
         #ax[1].set_ylim([1e3*min(yedgeDmaxValid),1e3*max(yedgeDmaxValid)]) #TODO: why doesnt this work??
         ax[1].set_ylim(bottom=1e3*min(yedgeDmaxValid),top=12.)
-        #ax[1].set_yscale('log')
         plt.tight_layout()
 
         [a_fit,b_fit] = fitting2D(yhistDmax,x_hist)
         print(a_fit,b_fit)
-        #ax[1].plot(xedge[:-1],1./a_fit*xedge[:-1]**(1./b_fit))
+        dVdD = a_fit * b_fit * Dmax #derivative
         DmaxFitEval = np.linspace(1e-4,1e-2,100) #simple Dmax-array to evaluate the fit 
         ax[2].plot(DmaxFitEval*1e3,a_fit*DmaxFitEval**b_fit)
         ax[2].set_xlabel("D$_{max}$ [mm]")
         ax[2].set_ylabel("v$_{term}$ [m/s]")
-        #import pdb; pdb.set_trace()
 
     return ax,hist,xedge,yedge
