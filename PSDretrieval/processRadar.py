@@ -28,7 +28,7 @@ def regridSpec(data,newVelRes=0.01,windowWidth=10,vRange=[-3,1]):
     #functions from Leonie and Jose's Tripex-pol processing
 #-- regrid along the doppler dimension in order to calculate spectral DWR... since we want to smooth the spectra, I am going to interpolate to a finer grid, which will then be smoothed (so we dont loose much information)
 # now this is really intricate, but xarray doesnt let me reindex and then rename the doppler coordinate inside of the original dataset... so now we do it like that...
-    dataDWR = xr.Dataset()
+    dataOut = xr.Dataset()
     newVel = np.arange(vRange[0], vRange[1], newVelRes) #new resolution and doppler velocity vector
     dvX = np.abs(np.diff(data['dopplerX'].values)[0])# normalize spectrum
     X = data['XSpecH']/dvX
@@ -48,11 +48,16 @@ def regridSpec(data,newVelRes=0.01,windowWidth=10,vRange=[-3,1]):
     WSpecInt = WSpecInt*newVelRes
     WSpecInt = WSpecInt.rename({'dopplerW':'doppler'})
     print('interp W done')
-    dataDWR = xr.merge([dataDWR,WSpecInt,KaSpecInt,XSpecInt])
-    print('merging datasets done')
-    dataDWR = dataDWR.rolling(doppler=windowWidth,min_periods=1,center=True).mean() #smooth dataset
+    ##correct noise: make true linear (saved are linear units to which the log-lin transformation was applied once to much)
+    data["KaSpecNoiseH"] = 10.*np.log10(10.*np.log10(data["KaSpecNoiseH"]))
+    data["XSpecNoiseH"] = 10.*np.log10(10.*np.log10(data["XSpecNoiseH"]))
 
-    return dataDWR
+    ##overwrite dataframe
+    dataOut = xr.merge([dataOut,WSpecInt,KaSpecInt,XSpecInt,data["XSpecNoiseH"],data["KaSpecNoiseH"]],compat='override')
+    print('merging datasets done')
+    dataOut = dataOut.rolling(doppler=windowWidth,min_periods=1,center=True).mean() #smooth dataset
+
+    return dataOut
 
 def addOffsets(data,data2,test_interp=False):
 #functions from Leonie and Jose's Tripex-pol processing
@@ -77,6 +82,7 @@ def addOffsets(data,data2,test_interp=False):
 
     data['DWR_X_Ka'] = data['XSpecH'] - data['KaSpecH']
     data['DWR_Ka_W'] = data['KaSpecH'] - data['WSpecH']
+
     return data
 
 def loadTripexPol(dataPath="/data/obs/campaigns/tripex-pol/processed/",date="20190113",time="06:00",tRange=0,hRange=180,hcenter=1000.):
@@ -112,22 +118,13 @@ def loadTripexPol(dataPath="/data/obs/campaigns/tripex-pol/processed/",date="201
     ####load LEVEL2 data
     dataLV2 = xr.open_mfdataset(dataPath + "tripex_pol_level_2/" + date + '_tripex_pol_3fr_L2_mom.nc')
     #select time step
-    dataLV2 = dataLV2.sel(time=slice(tStep-pd.Timedelta(minutes=tRange/2.),tStep+pd.Timedelta(minutes=tRange/2.)))
+    dataLV2 = dataLV2.sel(time=slice(tStep-pd.Timedelta(minutes=tRange/2.),tStep+pd.Timedelta(minutes=tRange/2.)),range=slice(hcenter-hRange/2,hcenter+hRange/2))
         
     #get offsets from LV2 data
-    xrSpec= addOffsets(xrSpec,dataLV2)
+    xrSpec       = addOffsets(xrSpec,dataLV2)
+    #add pressure to the file (needed for density correction of fall speed)
+    xrSpec["pa"] = dataLV2["pa"] 
     
-    #set_trace()
-    #ATTENTION: next lines are just a quick fix. Needs to be replaced!
-    #xrSpec["DWR_X_Ka"] = xrSpec["XSpecH"]  - xrSpec["KaSpecH"]
-    #xrSpec["DWR_Ka_W"] = xrSpec["KaSpecH"] - xrSpec["WSpecH"]
-    xrSpec["KaSpecHspecNoise"] = -47.
-    xrSpec["XSpecHspecNoise"] = -47.
-    xrSpec["pa"] = 90000.
-
-    #xrSpec = addOffsets(xrSpec,dataLV2selt) #TODO:
-    #TODO: add DWRs #is done in ZFR_riming/plotRoutines
-
     return xrSpec
 
 def loadSpectra(loadSample=True,dataPath=None,createSample=False,date="20190113",time="06:00",tRange=5,hRange=180,hcenter=1000):
@@ -181,7 +178,6 @@ def selectSingleTimeHeight(xrSpec,centered=True,time=None,height=None):
             True: get data from center in time and range space
             False: provide time and height (TODO: what format??)
     '''
-
 
     if centered:
         centeredTime    = xrSpec.time[0] + (xrSpec.time[-1] - xrSpec.time[0])/2.
