@@ -20,7 +20,7 @@ def plotObsSpectra(xrSpec,ax):
         ax.legend()
         ax.set_xlabel("v [m/s]")
         ax.set_ylabel("z [dBz]")
-        ax.set_xlim([-0.5,2])
+        ax.set_xlim([-0.5,3.0])
 
     return ax
 

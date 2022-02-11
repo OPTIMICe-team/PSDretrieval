@@ -127,7 +127,7 @@ def loadTripexPol(dataPath="/data/obs/campaigns/tripex-pol/processed/",date="201
     
     return xrSpec
 
-def loadSpectra(loadSample=True,dataPath=None,createSample=False,date="20190113",time="06:00",tRange=5,hRange=180,hcenter=1000):
+def loadSpectra(loadSample=True,dataPath=None,createSample=False,date="20190113",time="06:18:04",tRange=1,hRange=180,hcenter=1600):
     '''
     load Doppler spectra data
 
@@ -135,18 +135,35 @@ def loadSpectra(loadSample=True,dataPath=None,createSample=False,date="20190113"
         if True: load processed data from sample_data directory
         if False: load data from path
     dataPath: path to the spectra files
-    createSample:  TODO 
+    createSample:  Create a sample from the data, so only the subset of the data must be read in later (saves time, especially for developing the retrieval)
     tRange:        time range to read in [Delta min]
     hRange:        height range to read in [Delta m]
     hcenter:       center of height range [m]
     '''
     import xarray as xr
     from os import path
-    
-    this_dir = path.dirname(path.realpath(__file__)) #path of this script
+   
+    #path of this script 
+    this_dir = path.dirname(path.realpath(__file__))
+    #define sample path (needed for both saving and reading a sample)
+    sample_path = this_dir + "/sample_data/" + date + "_" + time[0:2] + time[3:5] + time[6:8] + "_tR" + str(tRange) + "min_h" + str(hcenter) + "m_hR" + str(hRange) + "m.nc"
 
     if loadSample:
-        xrSpec = xr.open_dataset(this_dir + "/sample_data/20190122_1455_1000m.nc") #this is window with several times and heights
+        if createSample:
+            print("ERROR: cant create sample when loading sample: set either loadSample or createSample to False")
+            sys.exit(0)
+        if path.exists(sample_path):
+            #load a window with several times and heights
+            xrSpec = xr.open_dataset(sample_path)
+        else:
+            fileListForDay = glob.glob(sample_path.split("_tR")[0] + "*")
+            if len(fileListForDay)==0:
+                print("ERROR: no data for date: " + date + " and time" + time + "in PSDretrievalPSDretrieval//sample_data yet")
+                sys.exit(0)
+            else:
+                print("ERROR: check time Range (tRange", tRange, "), height (hcenter", hcenter, ") and height-Range (hRange", hRange, ") in call of loadSpectra()\n"
+                        "files available are: ", fileListForDay)
+                sys.exit(0)
     else:
         if dataPath is None:
             print("error: provide path to radar data if loadSample=False")
@@ -158,17 +175,14 @@ def loadSpectra(loadSample=True,dataPath=None,createSample=False,date="20190113"
             if "tripex-pol" in dataPath:
                 print("load file:"  + dataPath)
                 xrSpec = loadTripexPol(dataPath="/data/obs/campaigns/tripex-pol/processed/",date=date,time=time,tRange=tRange,hcenter=hcenter,hRange=hRange)
+                if createSample:
+                    xrSpec.to_netcdf(sample_path)
             else:
                 print("error: the path is not found or the file is not in the right format")
                 sys.exit(0)
+            
 
     return xrSpec
-
-def createSample(dataPath):
-    '''
-    create a sample from the tripex-pol files
-    ATTENTION: this works only on igmk-server
-    '''
 
 def selectSingleTimeHeight(xrSpec,centered=True,time=None,height=None):
     '''
