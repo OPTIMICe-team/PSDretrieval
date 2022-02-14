@@ -14,40 +14,64 @@ from IPython.core.debugger import set_trace
 
 def getPandasTime(date=None,time=None):
     '''
-    get pandas time format from strings of ...
-    
-    date: date in format yyyymmdd
-    time: time in format HH:MM
+    get pandas time format from strings of date and time
+    Arguments:
+        INPUT:    
+            date: date in format yyyymmdd
+            time: time in format HH:MM
+        OUTPUT:
+            tStep: time step in pandas format
     '''
 
     tStep = pd.to_datetime(date+' ' + time)
 
     return tStep
 
-def regridSpec(data,newVelRes=0.01,windowWidth=10,vRange=[-3,1]):
-    #functions from Leonie and Jose's Tripex-pol processing
-#-- regrid along the doppler dimension in order to calculate spectral DWR... since we want to smooth the spectra, I am going to interpolate to a finer grid, which will then be smoothed (so we dont loose much information)
-# now this is really intricate, but xarray doesnt let me reindex and then rename the doppler coordinate inside of the original dataset... so now we do it like that...
+def regridSpec(data,newVelRes=0.01,windowWidth=10,vRange=[-5,1]):
+    '''
+    regrid the spectra to a common doppler velocity grid
+    The regridded spectra has typically a finer, but smoothed grid compared to the input spectra.
+    Arguments:
+        INPUT:    
+            data: data from all frequencies
+        optional
+            newVelRes [m/s]: velocity resolution of the regridded spectra
+            windowWidth [bins]: width of moving average window
+            vRange [m/s]: velocity range of regridded spectra
+        OUTPUT:
+            dataOut: regridded spectra
+    '''
+    #xarray doesnt allow reindexing and rename the doppler velocity coordinate inside of the original dataset -> create new dataset
     dataOut = xr.Dataset()
-    newVel = np.arange(vRange[0], vRange[1], newVelRes) #new resolution and doppler velocity vector
-    dvX = np.abs(np.diff(data['dopplerX'].values)[0])# normalize spectrum
+
+    #new resolution and doppler velocity vector
+    newVel = np.arange(vRange[0], vRange[1], newVelRes) 
+    #normalize spectrum
+    dvX = np.abs(np.diff(data['dopplerX'].values)[0])
     X = data['XSpecH']/dvX
-    XSpecInt = X.interp(dopplerX=newVel) # interpolate to new vel
+    # interpolate to new velocity
+    XSpecInt = X.interp(dopplerX=newVel) 
     XSpecInt = XSpecInt*newVelRes
+    # rename doppler velocity grid
     XSpecInt = XSpecInt.rename({'dopplerX':'doppler'})
     print('interp X done')
+
+    #normalization, interpolation and renaming for Ka-Band same as for X-Band above (TODO: wouldnt that be better in a for-loop?)
     dvKa = np.abs(np.diff(data['dopplerKa'].values)[0])
     Ka = data['KaSpecH']/dvKa
     KaSpecInt = Ka.interp(dopplerKa=newVel)
     KaSpecInt = KaSpecInt*newVelRes
     KaSpecInt = KaSpecInt.rename({'dopplerKa':'doppler'})
     print('interp Ka done')
+
+    #normalization, interpolation and renaming for W-Band same as for X-Band above (TODO: wouldnt that be better in a for-loop?)
     dvW = np.abs(np.diff(data['dopplerW'].values)[0])
     W = data['WSpecH']/dvW
     WSpecInt = W.interp(dopplerW=newVel)
     WSpecInt = WSpecInt*newVelRes
     WSpecInt = WSpecInt.rename({'dopplerW':'doppler'})
-    print('interp W done')
+    print('interp W done')A
+
     ##correct noise: make true linear (saved are linear units to which the log-lin transformation was applied once to much)
     data["KaSpecNoiseH"] = 10.*np.log10(10.*np.log10(data["KaSpecNoiseH"]))
     data["XSpecNoiseH"] = 10.*np.log10(10.*np.log10(data["XSpecNoiseH"]))
@@ -60,12 +84,21 @@ def regridSpec(data,newVelRes=0.01,windowWidth=10,vRange=[-3,1]):
     return dataOut
 
 def addOffsets(data,data2,test_interp=False):
-#functions from Leonie and Jose's Tripex-pol processing
- #- add offset found and the offset calculated during the LV2 processing and the atmospheric attenuation. If you want to test against the LV2 Ze, just set test_interp=True
+    '''
+    add offsets and atmospheric attenuation stored in the level 2 data to the level 0 data
+    Arguments:
+        INPUT:    
+            data2: level 2 data containing the offset information
+        INPUT and OUTPUT:
+            data: level 0 data containing the spectral data
+        optional
+            test_interp: test interpolation against level 2 data
+    '''
     data['XSpecH'] = 10*np.log10(data['XSpecH']) + data2.rain_offset_X + data2.offset_x + data2.pia_x
     print('X offsets added')
     data['KaSpecH'] = 10*np.log10(data['KaSpecH']) + data2.rain_offset_Ka +  data2.pia_ka
     data['WSpecH'] = 10*np.log10(data['WSpecH']) + data2.rain_offset_W + data2.offset_w + data2.pia_w
+
     if test_interp==True:
         data['linKaSpec'] = 10**(data['KaSpecH']/10)
         data['ZeKa'] = data['linKaSpec'].sum(dim='doppler')
@@ -85,16 +118,19 @@ def addOffsets(data,data2,test_interp=False):
 
     return data
 
-def loadTripexPol(dataPath="/data/obs/campaigns/tripex-pol/processed/",date="20190113",time="06:00",tRange=0,hRange=180,hcenter=1000.):
+def loadTripexPol(dataPath="/data/obs/campaigns/tripex-pol/processed/",date="20190113",time="06:18:04",tRange=0,hRange=180,hcenter=1000.):
     '''
-    load spectra from Tripex-pol
-    ARGUMENTS:
-        dataPath:  TODO: 
-        date:      TODO: 
-        time:      TODO: 
-        tRange:        time range to read in [Delta min]
-        hRange:        height range to read in [Delta m]
-        hcenter:       center of height range [m]
+    load spectra (+ regrid, offset-correction, ...) from level 0 data of the Tripex-pol dataset 
+    Arguments:
+        optional INPUT:    
+            dataPath:  path to the level 0 and level 2 data
+            date [yyyymmdd]:    date
+            time [HH:MM:SS]:    time
+            tRange [Delta min]: time range
+            hRange [Delta m]:   height range
+            hcenter [m]:        center of height range
+        OUTPUT:
+            xrSpec: spectra which has been read in, regridded, corrected for offsets + information on pressure and noise
     '''
   
     #convert strings to pandas time format 
@@ -129,16 +165,19 @@ def loadTripexPol(dataPath="/data/obs/campaigns/tripex-pol/processed/",date="201
 
 def loadSpectra(loadSample=True,dataPath=None,createSample=False,date="20190113",time="06:18:04",tRange=1,hRange=180,hcenter=1600):
     '''
-    load Doppler spectra data
-
-    loadSample: 
-        if True: load processed data from sample_data directory
-        if False: load data from path
-    dataPath: path to the spectra files
-    createSample:  Create a sample from the data, so only the subset of the data must be read in later (saves time, especially for developing the retrieval)
-    tRange:        time range to read in [Delta min]
-    hRange:        height range to read in [Delta m]
-    hcenter:       center of height range [m]
+    load Doppler spectra data from 1) any dataset (requires some additional implementions-  maybe in a git-branch) 2) the Tripex-pol dataset  3) the sample_data folder
+    Arguments:
+        INPUT:    
+            loadSample [boolean]: 
+                if True: load processed data from sample_data directory
+                if False: load data from path
+            dataPath: path to the spectra files
+            createSample:  Create a sample from the data, so only the subset of the data must be read in later (saves time, especially for developing the retrieval)
+            tRange [Delta min]:     time range to read
+            hRange [Delta m]:       height range to read
+            hcenter[m]:             center of height range
+        OUTPUT:
+            xrSpec: xarray-dataset containing the spectra data
     '''
     import xarray as xr
     from os import path
@@ -184,13 +223,20 @@ def loadSpectra(loadSample=True,dataPath=None,createSample=False,date="20190113"
 
     return xrSpec
 
-def selectSingleTimeHeight(xrSpec,centered=True,time=None,height=None):
+def selectSingleTimeHeight(xrSpec,centered=True,pdTime=None,height=None):
     '''
-    select data from a single time-height pixel
-
-    centered:
-            True: get data from center in time and range space
-            False: provide time and height (TODO: what format??)
+    select data from a single time and height
+    Arguments:
+        INPUT:    
+            xrSpec: xarray-dataset containing the spectra data
+        optional
+            centered [boolean]:
+                True: get data from center in time and range space
+                False: provide time and height (TODO: not implemented!)
+            pDTime:     pandas time stamp
+            hcenter:    height range
+        OUTPUT:
+            xrSpecSingle: Spectrum from a single time and height
     '''
 
     if centered:
@@ -199,8 +245,22 @@ def selectSingleTimeHeight(xrSpec,centered=True,time=None,height=None):
         xrSpecSingle    = xrSpec.sel(time=centeredTime,range=centeredHeight,method="nearest")
     else:
         if (time is None) or (height is None):
-            print("time or height cant be None when centered=False")
+            print("ERROR: time or height cant be None when centered=False in selectSingleTimeHeight")
+            sys.exit(0)
         else:
-            print("TODO: implement time and height selection")
+            print("ERROR: time-height selection not implemented in selectSingleTimeHeight")
+            sys.exit(0)
 
     return xrSpecSingle
+
+def shiftSpectraByVerticalWind(SpecWindow):
+    '''
+    Shift the spectra by the vertical wind diagnosed with the position of the cloud droplet peak
+    Arguments:
+        INPUT:    
+        IN- & OUTPUT:
+            SpecWindow: spectra from a time-height window
+            wArray:     array (time-height window) with estimated vertical wind 
+    '''
+
+    return SpecWindow,wArray
