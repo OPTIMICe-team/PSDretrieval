@@ -51,14 +51,25 @@ def plotSDWRvsDVobs(xrSpec,axes):
     plot Doppler velocity vs. spectral DWR of X-Ka and Ka-W band combinations (kind of a v-D plot)
     Arguments:
         INPUT:
-            xrDWR: xarray containing all spectra information (including DWRs with labels "DWR_X_Ka" and "DWR_Ka_W")
+            xrSpec [can be single spectra or a time-height window]: xarray containing all spectra information (including DWRs with labels "DWR_X_Ka" and "DWR_Ka_W")
+                if single spectra: just plot DV vs. DWRs
+                if Window:         average over (vertical wind corrected) DV and plot vs DWR
         IN- & OUTPUT: 
             axes: axes handles
     '''
-    print("TODO: think about reading in whole window here")
+
+    #these two DWR variables are needed here
     DWRkeys = ["DWR_X_Ka","DWR_Ka_W"]
-    for i_ax,(ax,DWRkeys) in enumerate(zip(axes,DWRkeys)):
-        axes[i_ax].plot(xrSpec[DWRkeys],-xrSpec.doppler)
+
+    if xrSpec["KaSpecH"].values.ndim>1:
+        print("plot average DV vs DWR for a time-height window")
+        for key in DWRkeys:
+            xrSpec[key] = xrSpec[key].mean(dim=["time","range"])
+    else:
+        print("plot DV vs DWR for a single spectrum")
+    
+    for i_ax,(ax,key) in enumerate(zip(axes,DWRkeys)):
+        axes[i_ax].plot(xrSpec[key],-xrSpec.doppler)
         ax.set_ylabel("DV [m/s]")
     axes[0].set_xlabel("DWR$_{X,Ka}$ [dB]")
     axes[1].set_xlabel("DWR$_{Ka,W}$ [dB]")

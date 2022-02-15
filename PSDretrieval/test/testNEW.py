@@ -26,8 +26,10 @@ SpecSingle  = pR.selectSingleTimeHeight(SpecWindow)
 SpecSingleWshifted  = pR.shiftSpectra(SpecSingle)
 
 #plot Spectra and sDWR
-fig,ax = plt.subplots(nrows=1,ncols=1)
+#fig,ax = plt.subplots(nrows=1,ncols=1)
 fig2,axes2 = plt.subplots(nrows=1,ncols=2)
-__ = pl.plotObsSpectra(SpecSingleWshifted,ax)
-__ = pl.plotSDWRvsDVobs(SpecSingleWshifted,axes2)
-#plt.show()
+#__ = pl.plotObsSpectra(SpecSingleWshifted,ax)
+#__ = pl.plotSDWRvsDVobs(SpecSingle,axes2)
+__ = pl.plotSDWRvsDVobs(SpecWindow,axes2)
+
+plt.show()
