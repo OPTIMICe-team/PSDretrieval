@@ -70,7 +70,7 @@ def regridSpec(data,newVelRes=0.01,windowWidth=10,vRange=[-5,1]):
     WSpecInt = W.interp(dopplerW=newVel)
     WSpecInt = WSpecInt*newVelRes
     WSpecInt = WSpecInt.rename({'dopplerW':'doppler'})
-    print('interp W done')A
+    print('interp W done')
 
     ##correct noise: make true linear (saved are linear units to which the log-lin transformation was applied once to much)
     data["KaSpecNoiseH"] = 10.*np.log10(10.*np.log10(data["KaSpecNoiseH"]))
@@ -197,7 +197,7 @@ def loadSpectra(loadSample=True,dataPath=None,createSample=False,date="20190113"
         else:
             fileListForDay = glob.glob(sample_path.split("_tR")[0] + "*")
             if len(fileListForDay)==0:
-                print("ERROR: no data for date: " + date + " and time" + time + "in PSDretrievalPSDretrieval//sample_data yet")
+                print("ERROR: no data for date: " + date + " and time" + time + "in PSDretrieval/sample_data yet")
                 sys.exit(0)
             else:
                 print("ERROR: check time Range (tRange", tRange, "), height (hcenter", hcenter, ") and height-Range (hRange", hRange, ") in call of loadSpectra()\n"
@@ -213,7 +213,7 @@ def loadSpectra(loadSample=True,dataPath=None,createSample=False,date="20190113"
             '''
             if "tripex-pol" in dataPath:
                 print("load file:"  + dataPath)
-                xrSpec = loadTripexPol(dataPath="/data/obs/campaigns/tripex-pol/processed/",date=date,time=time,tRange=tRange,hcenter=hcenter,hRange=hRange)
+                xrSpec = loadTripexPol(dataPath=dataPath,date=date,time=time,tRange=tRange,hcenter=hcenter,hRange=hRange)
                 if createSample:
                     xrSpec.to_netcdf(sample_path)
             else:
@@ -253,14 +253,145 @@ def selectSingleTimeHeight(xrSpec,centered=True,pdTime=None,height=None):
 
     return xrSpecSingle
 
-def shiftSpectraByVerticalWind(SpecWindow):
+
+def loadTripexPolPeaks(dataPath="/data/obs/campaigns/tripex-pol/spectralPeaks/",date="20190113",time="06:18:04",tRange=0,hRange=180,hcenter=1000.):
     '''
-    Shift the spectra by the vertical wind diagnosed with the position of the cloud droplet peak
+    load peaks data from the Tripex-pol campaign
+    Arguments:
+        optional INPUT:    
+            dataPath:  path to the level 0 and level 2 data
+            date [yyyymmdd]:    date
+            time [HH:MM:SS]:    time
+            tRange [Delta min]: time range
+            hRange [Delta m]:   height range
+            hcenter [m]:        center of height range
+        OUTPUT:
+            xrSpec: spectra which has been read in
+    '''
+  
+    #convert strings to pandas time format 
+    tStep = getPandasTime(date=date,time=time)
+
+    ####load peaks data
+    #load data
+    dataPeaks = xr.open_mfdataset(dataPath + tStep.strftime('%Y%m%d') + '_peaks_joyrad35.nc')
+    #select time step
+    xrPeaks = dataPeaks.sel(time=slice(tStep-pd.Timedelta(minutes=tRange/2.),tStep+pd.Timedelta(minutes=tRange/2.)),range=slice(hcenter-hRange/2,hcenter+hRange/2))
+    
+    return xrPeaks
+
+def loadPeaks(loadSample=True,dataPath=None,createSample=False,date="20190113",time="06:18:04",tRange=1,hRange=180,hcenter=1600):
+    '''
+    load the peaks data from  1) any dataset (requires some additional implementions-  maybe in a git-branch) 2) the Tripex-pol dataset  3) the sample_data folder
     Arguments:
         INPUT:    
+            loadSample [boolean]: 
+                if True: load processed data from sample_data directory
+                if False: load data from path
+            dataPath: path to the spectra files
+            createSample:  Create a sample from the data, so only the subset of the data must be read in later (saves time, especially for developing the retrieval)
+            tRange [Delta min]:     time range to read
+            hRange [Delta m]:       height range to read
+            hcenter[m]:             center of height range
+        OUTPUT:
+            xrPeaks: xarray-dataset containing the peaks data
+    '''
+    import xarray as xr
+    from os import path
+   
+    #path of this script 
+    this_dir = path.dirname(path.realpath(__file__))
+    #define sample path (needed for both saving and reading a sample)
+    sample_path = this_dir + "/sample_data/spectralPeaks/" + date + "_" + time[0:2] + time[3:5] + time[6:8] + "_tR" + str(tRange) + "min_h" + str(hcenter) + "m_hR" + str(hRange) + "m.nc"
+
+    if loadSample:
+        if createSample:
+            print("ERROR: cant create sample when loading sample: set either loadSample or createSample to False")
+            sys.exit(0)
+        if path.exists(sample_path):
+            #load a window with several times and heights
+            xrPeaks = xr.open_dataset(sample_path)
+        else:
+            fileListForDay = glob.glob(sample_path.split("_tR")[0] + "*")
+            if len(fileListForDay)==0:
+                print("ERROR: no data for date: " + date + " and time" + time + "in PSDretrieval/sample_data yet")
+                sys.exit(0)
+            else:
+                print("ERROR: check time Range (tRange", tRange, "), height (hcenter", hcenter, ") and height-Range (hRange", hRange, ") in call of loadSpectra()\n"
+                        "files available are: ", fileListForDay)
+                sys.exit(0)
+    else:
+        if dataPath is None:
+            print("error: provide path to radar data if loadSample=False")
+            sys.exit(0)
+        else: 
+            '''
+            load a spectra file
+            '''
+            if "tripex-pol" in dataPath:
+                print("load file:"  + dataPath)
+                xrPeaks = loadTripexPolPeaks(dataPath=dataPath,date=date,time=time,tRange=tRange,hcenter=hcenter,hRange=hRange)
+                if createSample:
+                    xrPeaks.to_netcdf(sample_path)
+            else:
+                print("error: the path is not found or the file is not in the right format")
+                sys.exit(0)
+
+    return xrPeaks
+
+def addVerticalWindToSpecWindow(SpecWindow,PeaksWindow,ZeRange=[-50,30]):
+    '''
+    Diagnose the vertical wind by the position of the cloud droplet peak and add this information to the SpecWindow
+    Arguments:
+        INPUT:    
+            PeaksWindow:    Identified peaks in the selected time-height window
+            optional
+            ZeRange:        Ze-range of peaks to be considered non-sedimenting cloud droplets
         IN- & OUTPUT:
             SpecWindow: spectra from a time-height window
+        OUTPUT:
             wArray:     array (time-height window) with estimated vertical wind 
     '''
 
-    return SpecWindow,wArray
+    ####create boolean variable in PeaksWindow: 1: peaks are in ZeRange, and thus probably cloud droplets 2: peaks are outsided ZeRange and thus might not be caused by cloud droplets
+    #create new variables by copying existing variables and replace the contents with nans
+    dummyVar = PeaksWindow["peakPowClass"].sel(peakIndex=0) #get a dummy variable to create new variables #TODO: there must be a better way to do that
+    for key in ["Peak1InZeRange","Peak2InZeRange"]:
+        PeaksWindow = eval("PeaksWindow.assign(" + key + "=dummyVar)")
+        PeaksWindow[key].values = np.nan * np.ones_like(dummyVar)
+    for key in ["W"]:
+        SpecWindow = eval("SpecWindow.assign(" + key + "=dummyVar)")
+        SpecWindow[key].values = np.nan * np.ones_like(dummyVar)
+   
+    #create boolean variable 
+    for i_peak in [1,2]:
+        #simply copy variable for clarity
+        peakPow         = PeaksWindow["peakPowClass"].sel(peakIndex=i_peak)
+        #create boolean
+        PeakInZeRange   = np.where(np.logical_and(peakPow>-50,peakPow<-30),1,0)
+        #copy boolean to Dataset
+        PeaksWindow["Peak" + str(i_peak) + "InZeRange"].values = PeakInZeRange
+
+    print("TODO: this lines should be checked with a time period with two peaks")
+    #first select Peak1 as W
+    SpecWindow["W"].values = np.where(PeaksWindow["Peak1InZeRange"]==1,PeaksWindow["peakVelClass"].sel(peakIndex=1),np.nan) 
+    #overwrite W with Peak2 in case it lies within the Ze-range
+    SpecWindow["W"].values = np.where(PeaksWindow["Peak2InZeRange"]==1,PeaksWindow["peakVelClass"].sel(peakIndex=2),SpecWindow["W"].values)
+
+
+    return SpecWindow
+
+
+def shiftSpectra(SpecSingle):
+    '''
+    shift a spectra by the vertical wind information contained in the dataset
+    '''
+
+    #get Doppler velocity resolution
+    DelDV = (SpecSingle.doppler[1]-SpecSingle.doppler[0]).values #[m/s]
+    dopplerBinShifts = int(round(SpecSingle["W"].values/DelDV))
+    
+    SpecSingle = SpecSingle.shift(doppler=-dopplerBinShifts)
+
+    return SpecSingle
+    

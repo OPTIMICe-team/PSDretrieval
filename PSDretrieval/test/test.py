@@ -8,15 +8,15 @@ from snowScatt import snowMassVelocityArea
 from IPython.terminal.debugger import set_trace
 
 #define time
-date = "20190122"
-time = "14:55"
-#date = "20190113"
-#time = "06:00"
+#date = "20190122"
+#time = "14:55"
+date = "20190113"
+time = "06:18:04"
 
 
 #load spectra
-#SpecWindow  = pR.loadSpectra()
-SpecWindow  = pR.loadSpectra(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/processed/",createSample=True,date=date,time=time,tRange=1,hRange=180,hcenter=990)
+SpecWindow  = pR.loadSpectra()
+#SpecWindow  = pR.loadSpectra(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/processed/",createSample=True,date=date,time=time,tRange=1,hRange=180,hcenter=990)
 SpecSingle  = pR.selectSingleTimeHeight(SpecWindow)
 DWRkey="DWR_X_Ka"
 

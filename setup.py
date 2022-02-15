@@ -16,7 +16,8 @@ setup(name='PSDretrieval',
         '': ['sample_data'],
     },
     long_description = long_description,
-    license = 'GPL'
+    license = 'GPL',
+    include_package_data=True
      )
 
 
