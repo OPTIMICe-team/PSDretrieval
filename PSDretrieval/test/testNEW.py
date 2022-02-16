@@ -5,7 +5,9 @@ from PSDretrieval import retrievalUtils as rU
 import matplotlib.pyplot as plt
 import numpy as np
 from snowScatt import snowMassVelocityArea
+import snowScatt
 from IPython.terminal.debugger import set_trace
+
 
 #define time
 date    = "20190113"
@@ -31,5 +33,22 @@ fig2,axes2 = plt.subplots(nrows=1,ncols=2)
 #__ = pl.plotObsSpectra(SpecSingleWshifted,ax)
 #__ = pl.plotSDWRvsDVobs(SpecSingle,axes2)
 __ = pl.plotSDWRvsDVobs(SpecWindow,axes2)
+
+#get names of all particle types
+allParticleTypes        = [*snowScatt.snowLibrary._fileList.keys()] #read https://www.python.org/dev/peps/pep-0448/ for the [*...] formalism
+aggType = 'vonTerzi_mixcoldend'
+allRimDegr = [k for k in allParticleTypes if aggType in k]
+#selectedParticleTypes   = ["vonTerzi_mixcoldend","vonTerzi_mixcoldend_rimed05"]
+
+#for pType in allParticleTypes:
+for pType in allMixColDend:
+#for pType in selectedParticleTypes:
+    #get particle properties
+    Zx, Zk, Zw, Dmax, K2, vel = sc.model3fOne(pType)
+    #calculate spectral DWRs
+    DWRxk = Zx-Zk; DWRkw = Zk-Zw
+    axes2 = pl.plotSDWRvsDVmodel(vel,DWRxk,DWRkw,axes2,pType)
+
+axes2[0].legend()
 
 plt.show()
