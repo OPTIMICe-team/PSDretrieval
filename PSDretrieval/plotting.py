@@ -61,15 +61,17 @@ def plotSDWRvsDVobs(xrSpec,axes):
     #these two DWR variables are needed here
     DWRkeys = ["DWR_X_Ka","DWR_Ka_W"]
 
-    if xrSpec["KaSpecH"].values.ndim>1:
+    xrSpecPlot = xrSpec.copy() #this seems necessary for the way the averaging is applied, but there might be a cleaner way
+
+    if xrSpecPlot["KaSpecH"].values.ndim>1:
         print("plot average DV vs DWR for a time-height window")
         for key in DWRkeys:
-            xrSpec[key] = xrSpec[key].mean(dim=["time","range"])
+            xrSpecPlot[key] = xrSpecPlot[key].mean(dim=["time","range"])
     else:
         print("plot DV vs DWR for a single spectrum")
     
     for i_ax,(ax,key) in enumerate(zip(axes,DWRkeys)):
-        axes[i_ax].plot(xrSpec[key],-xrSpec.doppler)
+        axes[i_ax].plot(xrSpecPlot[key],-xrSpecPlot.doppler)
         ax.set_ylabel("DV [m/s]")
     axes[0].set_xlabel("DWR$_{X,Ka}$ [dB]")
     axes[1].set_xlabel("DWR$_{Ka,W}$ [dB]")
@@ -90,10 +92,10 @@ def plotSDWRvsDVmodel(vel,DWRxk,DWRkw,axes,pType):
             axes: axes handles
     '''
 
-    
     for i_ax,(ax,DWR) in enumerate(zip(axes,[DWRxk,DWRkw])):
         axes[i_ax].plot(DWR,vel,label=pType)
         ax.set_ylabel("DV [m/s]")
+
     axes[0].set_xlabel("DWR$_{X,Ka}$ [dB]")
     axes[1].set_xlabel("DWR$_{Ka,W}$ [dB]")
 
