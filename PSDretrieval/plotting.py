@@ -71,8 +71,9 @@ def plotSDWRvsDVobs(xrSpec,axes):
         print("plot DV vs DWR for a single spectrum")
     
     for i_ax,(ax,key) in enumerate(zip(axes,DWRkeys)):
-        axes[i_ax].plot(xrSpecPlot[key],-xrSpecPlot.doppler)
+        axes[i_ax].plot(xrSpecPlot[key],-xrSpecPlot.doppler,c="k",lw=5,ls="--",label="obs.")
         ax.set_ylabel("DV [m/s]")
+    axes[0].legend()
     axes[0].set_xlabel("DWR$_{X,Ka}$ [dB]")
     axes[1].set_xlabel("DWR$_{Ka,W}$ [dB]")
 
