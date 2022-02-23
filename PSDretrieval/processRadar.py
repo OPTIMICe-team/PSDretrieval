@@ -339,6 +339,27 @@ def loadPeaks(loadSample=True,dataPath=None,createSample=False,date="20190113",t
 
     return xrPeaks
 
+def cutLowZe(xrSpec,zeThreshold=-30):
+    '''
+    select data from a single time and height
+    Arguments:
+        IN - & OUTPUT:    
+            xrSpec:             xarray-dataset containing the spectra data
+        INPUT: (optional)
+            zeThreshold [dB]:   threshold at which values of ze the spectra should be cut 
+    '''
+
+    #define variables that contain spectras
+    zFreqsKeys = ["XSpecH","KaSpecH","WSpecH"]
+    for key in zFreqsKeys:
+        xrSpec[key] = xrSpec[key].where(xrSpec[key]>zeThreshold)
+
+    #recalculate DWRs
+    xrSpec["DWR_X_Ka"]  = xrSpec["XSpecH"]  - xrSpec["KaSpecH"] 
+    xrSpec["DWR_Ka_W"]  = xrSpec["KaSpecH"] - xrSpec["WSpecH"] 
+
+    return xrSpec
+
 def addVerticalWindToSpecWindow(SpecWindow,PeaksWindow,ZeRange=[-50,30]):
     '''
     Diagnose the vertical wind by the position of the cloud droplet peak and add this information to the SpecWindow

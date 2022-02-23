@@ -87,7 +87,6 @@ def plotSDWRvsDVmodel(vel,DWRxk,DWRkw,axes,pType):
             vel     [numpy-array]:  velocity [m/s]
             DWRxk   [numpy-array]:  dual-wavelength ratio (X-Ka band) [dB]
             DWRkw   [numpy-array]:  dual-wavelength ratio (Ka-W band) [dB]
-            vel     [numpy-array]:  velocity [m/s]
             pType   [str]:          particle-type name
         IN- & OUTPUT: 
             axes: axes handles

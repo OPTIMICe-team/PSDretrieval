@@ -1,7 +1,7 @@
 from PSDretrieval import processRadar as pR
 from PSDretrieval import plotting as pl
 from PSDretrieval import scattering as sc
-from PSDretrieval import retrievalUtils as rU
+from PSDretrieval import retrievalUtilsBarrett as rUb
 import matplotlib.pyplot as plt
 import numpy as np
 from snowScatt import snowMassVelocityArea
@@ -40,12 +40,12 @@ elif DWRkey=="DWR_X_Ka":
 DWRUnamb,__ = sc.getUnambigousDWRdmax(Dmax,DWR,DmaxRetr=DmaxRetr,DWRlowDetect=1.,showIllus=False)
 
 #get Dmax from sDWR (spectral resolved)
-DmaxfromDWR = rU.getDmaxFromSDWR(SpecSingle[DWRkey],DWRUnamb,Dmax,showIllus=False)
+DmaxfromDWR = rUb.getDmaxFromSDWR(SpecSingle[DWRkey],DWRUnamb,Dmax,showIllus=False)
 
 #get the single particle reflectivity
 ZkOne = sc.getSinglePartRefl(particleType,DmaxfromDWR,freq="k")
 
 #get the number concentration from the spectrum and the single particle scattering properties at the given Doppler velocity bin
-Nnorm,__ = rU.calcNumberConcFromSpectrumAndZOne(SpecSingle.KaSpecH,ZkOne,showIllus=False)
+Nnorm,__ = rUb.calcNumberConcFromSpectrumAndZOne(SpecSingle.KaSpecH,ZkOne,showIllus=False)
 
-__ = rU.histDWRandDmaxVsDv(SpecWindow[DWRkey],SpecWindow.KaSpecH,SpecWindow.KaSpecNoiseH,DWRUnamb,Dmax,aboveNoiseThreshold=15,showIllus=True,ax=axes,fig=fig)
+__ = rUb.histDWRandDmaxVsDv(SpecWindow[DWRkey],SpecWindow.KaSpecH,SpecWindow.KaSpecNoiseH,DWRUnamb,Dmax,aboveNoiseThreshold=15,showIllus=True,ax=axes,fig=fig)

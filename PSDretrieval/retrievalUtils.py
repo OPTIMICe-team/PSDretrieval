@@ -7,160 +7,72 @@ Functions used for the retrieval
 import numpy as np
 import matplotlib.pyplot as plt
 from PSDretrieval import scattering as sc
+from IPython.terminal.debugger import set_trace
 
-def findNearest(array, value):
-    array = np.asarray(array)
-    idx = (np.abs(array - value)).argmin()
-    return idx
-
-def getDmaxFromSDWR(sDWRobs,sDWRmod,Dmax,showIllus=False,ax=None):
+def findBestFittingPartType(selectedParticleTypes, xrSpec):
     '''
-    return a Dmax for DWR(DV)
-
-    ARGUMENTS:
-        sDWRobs: spectral DWR from the spectrum (must be xarray for plotting; can also be np.darray for calculation only)
-        sDWRmod: spectral DWR from the scattering database (snowScatt)
-        Dmax:    Dmax corresponding to sDWRmod
-    OPTIONAL: 
-        showIllus: create a plot to illustrate this function
-        ax: axes (has to be given if showIllus=True)
-    REURN:
-        Dmax corresponding to sDWRobs
+    plot Doppler velocity vs. spectral DWR of X-Ka and Ka-W band combinations (kind of a v-D plot) from the snowScatt simulations
+    Arguments:
+        INPUT: 
+            (model - snowScatt)
+            selectedParticleTypes: list of ParticleTypes from which to choose
+            (observations)
+            xrSpec [can be a single spectra or a time-height window]: xarray containing all spectra information (including DWRs with labels "DWR_X_Ka" and "DWR_Ka_W")
+                if single spectra: just plot DV vs. DWRs
+                if Window:         average over (vertical wind corrected) DV and plot vs DWR
+        OUTPUT: 
+            bestPartType: particle type which fits the observation the best
+            orderedListPartType: list of particle types ordered by how well they fit the observations
     '''
+    from sklearn.metrics import mean_squared_error
 
-    DmaxfromDWR = np.ones_like(sDWRobs)*np.nan #initialize Dmax(DWR)
-    if not isinstance(sDWRobs, np.ndarray):
-        try:
-            sDWRobsvals = sDWRobs.values
-        except: 
-            print("sDWRobs in retrievalUtils.getDmaxFromSDWR must be either a np.ndarray of xarray variable")
-            sys.exit(0)
-    else:
-        sDWRobsvals = sDWRobs
+    print("Start: find best matching particle type in DV-DWR spaces")
 
-    for i,sDWRnow in enumerate(sDWRobsvals):
-        if sDWRnow<np.nanmax(sDWRmod) and sDWRnow>np.nanmin(sDWRmod): #are we in the unambigious range?
-            idx = findNearest(sDWRmod,sDWRnow)
-            DmaxfromDWR[i] = Dmax[idx]
-        else:
-            DmaxfromDWR[i] = np.nan    
-        
-    if showIllus:
-        if isinstance(sDWRobs, np.ndarray):
-            print("plotting currently only possible with xarray -> skip plotting")
-        else:
-            fig,ax = plt.subplots(nrows=1,ncols=1)
-            ax.plot(-sDWRobs.doppler[::-1],DmaxfromDWR[::-1]*1e3)
-            plt.xlabel("DV [m/s]")
-            plt.ylabel("Dmax [mm]")
+    #these two DWR variables are needed here
+    DWRkeys = ["DWR_X_Ka","DWR_Ka_W"]
+    xrSpecCopy = xrSpec.copy() #this seems necessary for the way the averaging is applied, but there might be a cleaner way
 
-    return DmaxfromDWR
+    if xrSpecCopy["KaSpecH"].values.ndim>1:
+        print("plot average DV vs DWR for a time-height window")
+        for key in DWRkeys:
+            xrSpecCopy[key] = xrSpecCopy[key].mean(dim=["time","range"])
 
-def calcNumberConcFromSpectrumAndZOne(Zobs,Zone,showIllus=False,ax=None):
-    '''
-    calculate the number concentration from the spectrum and the single particle scattering properties at the given Doppler velocity bin
-    ARGUMENTS:
-        Zobs: xarray vector with observed reflectivity and doppler velocity in Zobs.doppler
-        Zone: [mm^6/m^3] single particle reflectivity (must be from same frequency as Zobs!!)
-    OPTIONAL:
-        showIllus: create a plot to illustrate this function
-        ax: axes (has to be given if showIllus=True)
-    RETURN:
-        N: [m^-3/(m/s)] number concentration normalized with Doppler velocity 
-        ax: axis handle
-    '''
+    #initialize RMSE variables to find best parameter
+    RMSE = dict()
+    RMSEall = dict()
+    RMSEsumMin = np.inf 
+    for pType in selectedParticleTypes:
+        #get particle properties
+        Zx, Zk, Zw, Dmax, K2, velModel = sc.model3fOne(pType)
 
-    ## divide the observed z (power at a specific DV) by Zone to get the number concentration N
-    N = sc.Bd(Zobs)/ Zone
-    Nnorm = N/(Zobs.doppler[1] - Zobs.doppler[0]) 
+        #calculate spectral DWRs
+        DWRmodel = dict()
+        DWRmodel["DWR_X_Ka"]  = Zx-Zk
+        DWRmodel["DWR_Ka_W"] = Zk-Zw
 
-    if showIllus:
-        ax.semilogy(-Zobs.doppler,Nnorm)
-        ax.set_xlabel("DV [m/s]")
-        ax.set_ylabel("N [m$^{-3}$/(m/s)]")
+        for key in DWRkeys:
+            DWRobs = xrSpecCopy[key].copy()
+            
+            #interpolate the Model DV values to the DWR-grid of the observation
+            velModelAtObsDWRgrid = np.interp(DWRobs,DWRmodel[key],velModel)
 
-    return Nnorm,ax
+            #remove DWR values in obs and model, where vel is NaN in the model
+            DWRObsClean               = DWRobs.doppler[~np.isnan(velModelAtObsDWRgrid)]
+            velModelAtObsDWRgridClean = velModelAtObsDWRgrid[~np.isnan(velModelAtObsDWRgrid)]
 
+            #calculate the RMSE
+            RMSE[key] = np.sqrt(mean_squared_error(DWRObsClean.doppler,np.ma.masked_invalid(velModelAtObsDWRgridClean)))
 
-def func(x, a, b):
-    return a * x ** b
+        #sum up both RMSE's
+        RMSEsum   = RMSE["DWR_X_Ka"] + RMSE["DWR_Ka_W"]
 
-def fitting2D(xx, yy,p0=[8.57,0.393]):
-    from scipy.optimize import curve_fit
-    xx[np.isnan(yy)] = np.nan
-    yy[np.isnan(xx)] = np.nan
-    xx = xx[np.isfinite(xx)]
-    yy = yy[np.isfinite(yy)]
-    popt, pcov = curve_fit(func, xx, yy)
-    [coeff_a,coeff_b] = popt[0],popt[1]
-    return coeff_a,coeff_b
+        if RMSEsum<RMSEsumMin:
+            RMSEsumMin = RMSEsum
+            bestPartType = pType
 
-def histDWRandDmaxVsDv(xrDWR,Spec,SpecNoise,DWRUnamb,Dmax,aboveNoiseThreshold=30,showIllus=False,ax=None,fig=None):
-    '''
-        plot DWR and Dmax vs Doppler velocity
-        and fit a power-law to vterm(Dmax)
-    ARGUMENTS:
-        xrDWR: x-array variable which contains the DWR values and the doppler velocity (xrDWR.doppler)
-        Spec: spectral power (carefully choose the frequency - probably the one with the lowest sensitivity is the best)
-        SpecNoise: Noise level (same frequency as Spec!)
-        DWRUnamb: modeled unambigious DWR array
-        Dmax: maximum dimension array corresponding to DWRUnamb
-    OPTIONAL:
-        aboveNoiseThreshold: dismiss all DV sections where the reflectivity is less than 30dBz above the noise threshold
-        showIllus: create a plot to illustrate this function
-        ax: axes (has to be given if showIllus=True)
-    RETURN:
-        ax: axes handle
-    '''
+        print(pType,"RMSExk",RMSE["DWR_X_Ka"],"RMSEkw",RMSE["DWR_Ka_W"],"RMSEsum",RMSEsum,"RMSEsumMin",RMSEsumMin,"bestPartType",bestPartType)
 
-    #get the DV array #np.tile() flattens it and the "-" in front changes the convention so that positive DV is upward
-    x_hist = -np.tile(xrDWR.doppler.values,xrDWR.values.shape[0]*xrDWR.values.shape[1])
-    #flatten the dwr-array to be able to make a histogram
-    y_hist = xrDWR.values.flatten(order="C")
-    #remove the data below the noise level
-    KaSpecFlat = Spec.values.flatten(order="F")
-    KaGTnoiseFlag = (Spec>(SpecNoise+aboveNoiseThreshold)).values.flatten()
-    y_hist[~KaGTnoiseFlag] = np.nan
+    orderedListPartType = [] #TODO: implement
+    print("best Ptype:",bestPartType)
 
-
-    if showIllus:
-        import matplotlib as mpl
-        import copy
-        my_cmap = copy.copy(mpl.cm.get_cmap('jet')) # copy the default cmap
-        my_cmap.set_under("w",1)
-
-        hist,xedge,yedge,im = ax[0].hist2d(x_hist,y_hist,bins=30,range=[[-0.5,2],[-2,17]],cmap=my_cmap,vmin=1) #somehow both: "set_under" and "vmin" is necessary
-        cbar = fig.colorbar(im,ax=ax[0])
-        cbar.set_label("counts")
-        ax[0].set_xlabel("DV [m/s]")
-        ax[0].set_ylabel("sDWR [dB]")
-    else:
-        
-        hist,xedge,yedge = np.histogram2d(x_hist,y_hist,bins=30,range=[[-0.5,2],[-2,17]])
-
-    yedgeDmax = getDmaxFromSDWR(yedge,DWRUnamb,Dmax) #calculate Dmax corresponding to the yedge-DWR array
-    yhistDmax = getDmaxFromSDWR(y_hist,DWRUnamb,Dmax) #calculate Dmax corresponding to the y_hist-DWR array
-
-    if showIllus:
-        yedgeDmaxMatrix             = np.reshape(np.tile(yedgeDmax,xedge.shape[0]),(xedge.shape[0],yedge.shape[0])) #create array with dimension [xedge,yedge]
-        yedgeDmaxValid              = yedgeDmax[yedgeDmax>0] #remove nans from yedgeDmax
-
-        histValidDmax = hist[:,np.where(~np.isnan(yedgeDmax))[0]] 
-        print(xedge.shape,yedgeDmaxValid.shape,histValidDmax.shape)
-        ax[1].pcolor(xedge[:-1],yedgeDmaxValid*1e3,np.transpose(histValidDmax),cmap=my_cmap,vmin=1)
-        cbar.set_label("counts")
-        ax[1].set_xlabel("DV [m/s]")
-        ax[1].set_ylabel("D$_{max}$ [mm]")
-        #ax[1].set_ylim([1e3*min(yedgeDmaxValid),1e3*max(yedgeDmaxValid)]) #TODO: why doesnt this work??
-        ax[1].set_ylim(bottom=1e3*min(yedgeDmaxValid),top=12.)
-        plt.tight_layout()
-
-        [a_fit,b_fit] = fitting2D(yhistDmax,x_hist)
-        print(a_fit,b_fit)
-        dVdD = a_fit * b_fit * Dmax #derivative
-        DmaxFitEval = np.linspace(1e-4,1e-2,100) #simple Dmax-array to evaluate the fit 
-        ax[2].plot(DmaxFitEval*1e3,a_fit*DmaxFitEval**b_fit)
-        ax[2].set_xlabel("D$_{max}$ [mm]")
-        ax[2].set_ylabel("v$_{term}$ [m/s]")
-
-    return ax,hist,xedge,yedge
+    return bestPartType,orderedListPartType
