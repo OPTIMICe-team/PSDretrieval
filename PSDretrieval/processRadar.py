@@ -407,7 +407,6 @@ def addVerticalWindToSpecWindow(SpecWindow,PeaksWindow,ZeRange=[-50,30]):
     #overwrite W with Peak2 in case it lies within the Ze-range
     SpecWindow["W"].values = np.where(PeaksWindow["Peak2InZeRange"]==1,PeaksWindow["peakVelClass"].sel(peakIndex=2),SpecWindow["W"].values)
 
-
     return SpecWindow
 
 
@@ -416,6 +415,9 @@ def shiftSpectra(SpecSingle):
     shift a spectra by the vertical wind information contained in the dataset
     '''
 
+    if np.isnan(SpecSingle["W"].values):
+        print("ERROR: cannot shift spectra because W cannot be determined (or is NaN for another reason)")
+        sys.exit(0)
     #get Doppler velocity resolution
     DelDV = (SpecSingle.doppler[1]-SpecSingle.doppler[0]).values #[m/s]
     dopplerBinShifts = int(round(SpecSingle["W"].values/DelDV))

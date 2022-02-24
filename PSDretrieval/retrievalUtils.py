@@ -52,20 +52,23 @@ def findBestFittingPartType(selectedParticleTypes, xrSpec,verbose=False,whichDWR
 
         #calculate spectral DWRs
         DWRmodel = dict()
-        DWRmodel["DWR_X_Ka"]  = Zx-Zk
-        DWRmodel["DWR_Ka_W"] = Zk-Zw
+        DWRmodel["DWR_X_Ka"]    = Zx-Zk
+        DWRmodel["DWR_Ka_W"]    = Zk-Zw
         for key in DWRkeys:
             DWRobs = xrSpecCopy[key].copy()
+    
+            #get an unambiguous DWR array
+            DWRmodelUnAmb,ax = sc.getUnambigousDWRdmax(Dmax,DWRmodel[key])
             
             #interpolate the Model DV values to the DWR-grid of the observation
-            velModelAtObsDWRgrid = np.interp(DWRobs,DWRmodel[key],velModel)
+            velModelAtObsDWRgrid = np.interp(DWRobs,DWRmodelUnAmb,velModel)
 
             #remove DWR values in obs and model, where vel is NaN in the model
-            DWRObsClean               = DWRobs.doppler[~np.isnan(velModelAtObsDWRgrid)]
+            DVobsClean                = -DWRobs.doppler[~np.isnan(velModelAtObsDWRgrid)].values
             velModelAtObsDWRgridClean = velModelAtObsDWRgrid[~np.isnan(velModelAtObsDWRgrid)]
 
             #calculate the RMSE
-            RMSE[key] = np.average((DWRObsClean.doppler - np.ma.masked_invalid(velModelAtObsDWRgridClean))**2) #this is actually the MSE (mean squared error) and not RMSE, but this is needed in the next lines
+            RMSE[key] = np.average((DVobsClean - np.ma.masked_invalid(velModelAtObsDWRgridClean))**2) #this is actually the MSE (mean squared error) and not RMSE, but this is needed in the next lines
 
         #sum up both RMSE's
         if whichDWRsToUse=="both":
@@ -84,10 +87,9 @@ def findBestFittingPartType(selectedParticleTypes, xrSpec,verbose=False,whichDWR
             if whichDWRsToUse=="both":
                 print(pType,"MSExk",RMSE["DWR_X_Ka"],"MSEkw",RMSE["DWR_Ka_W"],"RMSExk_kw",RMSEfinal)
             elif whichDWRsToUse=="DWR_X_Ka":
-            
-                print(pType,"MSExk",RMSEfinal)
+                print(pType,"RMSExk",RMSEfinal)
             elif whichDWRsToUse=="DWR_Ka_W":
-                print(pType,"MSEkw",RMSEfinal)
+                print(pType,"RMSEkw",RMSEfinal)
 
     orderedListPartType = {k: v for k, v in sorted(RMSEall.items(), key=lambda item: item[1])}.keys()
     if verbose:

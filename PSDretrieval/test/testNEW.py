@@ -20,6 +20,8 @@ else:
     #rimed
     time    = "06:57:00"
     hRange  = 2000
+DmaxRetr = 1e-3 #[m] maximum size considered in retrieval; this inexplicitly assumes that larger particles are not relevant
+
 
 ###load Data
 #load spectra
@@ -50,16 +52,19 @@ __ = pl.plotSDWRvsDVobs(SpecWindow,axes2)
 AllParticleTypes   = [*snowScatt.snowLibrary._fileList.keys()] #read https://www.python.org/dev/peps/pep-0448/ for the [*...] formalism
 ParticleTypesList   = AllParticleTypes
 #ParticleTypesList   = [k for k in allParticleTypes if 'vonTerzi_mixcoldend' in k]
-#ParticleTypesList   = ["vonTerzi_mixcoldend","vonTerzi_mixcoldend_rimed05"]
+ParticleTypesList   = ["vonTerzi_mixcoldend","vonTerzi_column"]
 #ParticleTypesList   = ["vonTerzi_mixcoldend_rimed02","vonTerzi_mixcoldend_rimed04"]
 
 #find best fitting particle type
 [bestPartType,orderedListPartType] = rU.findBestFittingPartType(ParticleTypesList,SpecWindow,verbose=True,whichDWRsToUse="DWR_Ka_W")
+##bestPartType = "vonTerzi_column"
 
 #plot sDWR vs DV for best fitting particle type
 Zx, Zk, Zw, Dmax, K2, vel = sc.model3fOne(bestPartType)
 DWRxk = Zx - Zk; DWRkw = Zk - Zw
-axes2 = pl.plotSDWRvsDVmodel(vel,DWRxk,DWRkw,axes2,bestPartType)
+DWRxkModelUnAmb,ax = sc.getUnambigousDWRdmax(Dmax,DWRxk)
+DWRkwModelUnAmb,ax = sc.getUnambigousDWRdmax(Dmax,DWRkw)
+axes2 = pl.plotSDWRvsDVmodel(vel,DWRxkModelUnAmb,DWRkwModelUnAmb,axes2,bestPartType)
 
 ##for pType in allParticleTypes:
 ##for pType in allRimDegr:

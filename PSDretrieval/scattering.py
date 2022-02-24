@@ -88,17 +88,18 @@ def getDWRs(particleType,Dmax=np.linspace(0.3e-3, 20.0e-3, 2000),Kfreq=None):
 
     return Zx-Zk,Zk-Zw,Dmax
 
-def getUnambigousDWRdmax(Dmax,DWR,DmaxRetr=5e-3,DWRlowDetect=1,showIllus=False,ax=None):
+def getUnambigousDWRdmax(Dmax,DWR,DmaxRetr=5e-3,DWRlowDetect=1,showIllus=False,ax=None,verbose=False):
     '''
     get an Unambigous DWR-Dmax relation
         Dmax: [m] maximum dimensions
         DWR:  [dB] dual-wavelength ratio
-        
+        (optional)
         DmaxRetr:       #[m] maximum size considered in retrieval; this inexplicitly assumes that larger particles are not relevant
         DWRlowDetect:   #[dB] DWRs smaller than this are disregarded (detection limit)
     
         showIllus: create a plot to illustrate this function
         ax: axes (has to be given if showIllus=True)
+        verbose: display some progress with print commands
     RETURN:
         DWRUnamb: range of DWRs which are unambiguous
         ax: axes handle (None if showIllus=False)
@@ -114,7 +115,8 @@ def getUnambigousDWRdmax(Dmax,DWR,DmaxRetr=5e-3,DWRlowDetect=1,showIllus=False,a
     DWRmin = np.min(DWRMaskedLarge[Dmax>DmaxAtDWRmax])
     #3. find largest unambiguous Dmax
     DmaxLowUnamb = Dmax[DWRMaskedLarge>DWRmin][0]
-    print("DmaxRetr",DmaxRetr*1e3,"DmaxAtDWRmax",DmaxAtDWRmax*1e3,"DWRmin",DWRmin)
+    if verbose:
+        print("DmaxRetr",DmaxRetr*1e3,"DmaxAtDWRmax",DmaxAtDWRmax*1e3,"DWRmin",DWRmin)
 
     #mask ambiguous sizes
     DWRUnamb = np.ma.masked_where(Dmax>DmaxLowUnamb,DWRMaskedLarge)
