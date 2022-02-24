@@ -9,22 +9,27 @@ import snowScatt
 from IPython.terminal.debugger import set_trace
 
 
+loadDefault = True
 ###define time
 date    = "20190113"
-#unrimed 
-#time    = "06:18:04"
-#hRange  = 1600
-#rimed
-time    = "06:43:40"
-hRange  = 2000
+if loadDefault:
+    #unrimed 
+    time    = "06:18:04"
+    hRange  = 1600
+else:
+    #rimed
+    time    = "06:57:00"
+    hRange  = 2000
 
 ###load Data
 #load spectra
-#SpecWindow  = pR.loadSpectra()
-SpecWindow  = pR.loadSpectra(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/processed/",createSample=True,date=date,time=time,tRange=1,hRange=180,hcenter=hRange)
+if loadDefault:
+    SpecWindow  = pR.loadSpectra()
+    PeaksWindow  = pR.loadPeaks()
+else:
+    SpecWindow  = pR.loadSpectra(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/processed/",createSample=True,date=date,time=time,tRange=1,hRange=180,hcenter=hRange)
 
-PeaksWindow  = pR.loadPeaks()
-#PeaksWindow  = pR.loadPeaks(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/spectralPeaks/",createSample=True,date=date,time=time,tRange=1,hRange=180,hcenter=hRange)
+    PeaksWindow  = pR.loadPeaks(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/spectralPeaks/",createSample=True,date=date,time=time,tRange=1,hRange=180,hcenter=hRange)
 
 #get vertical wind information from the Spectral data
 SpecWindow = pR.addVerticalWindToSpecWindow(SpecWindow,PeaksWindow)
@@ -43,13 +48,13 @@ __ = pl.plotSDWRvsDVobs(SpecWindow,axes2)
 
 #get names of all particle types
 AllParticleTypes   = [*snowScatt.snowLibrary._fileList.keys()] #read https://www.python.org/dev/peps/pep-0448/ for the [*...] formalism
-#ParticleTypesList   = AllParticleTypes
+ParticleTypesList   = AllParticleTypes
 #ParticleTypesList   = [k for k in allParticleTypes if 'vonTerzi_mixcoldend' in k]
-ParticleTypesList   = ["vonTerzi_mixcoldend","vonTerzi_mixcoldend_rimed05"]
-ParticleTypesList   = ["vonTerzi_mixcoldend_rimed02","vonTerzi_mixcoldend_rimed04"]
+#ParticleTypesList   = ["vonTerzi_mixcoldend","vonTerzi_mixcoldend_rimed05"]
+#ParticleTypesList   = ["vonTerzi_mixcoldend_rimed02","vonTerzi_mixcoldend_rimed04"]
 
 #find best fitting particle type
-[bestPartType,orderedListPartType] = rU.findBestFittingPartType(ParticleTypesList,SpecWindow,verbose=True)
+[bestPartType,orderedListPartType] = rU.findBestFittingPartType(ParticleTypesList,SpecWindow,verbose=True,whichDWRsToUse="DWR_Ka_W")
 
 #plot sDWR vs DV for best fitting particle type
 Zx, Zk, Zw, Dmax, K2, vel = sc.model3fOne(bestPartType)

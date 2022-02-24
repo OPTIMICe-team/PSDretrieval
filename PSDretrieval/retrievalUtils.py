@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from PSDretrieval import scattering as sc
 from IPython.terminal.debugger import set_trace
 
-def findBestFittingPartType(selectedParticleTypes, xrSpec,verbose=False):
+def findBestFittingPartType(selectedParticleTypes, xrSpec,verbose=False,whichDWRsToUse="both"):
     '''
     plot Doppler velocity vs. spectral DWR of X-Ka and Ka-W band combinations (kind of a v-D plot) from the snowScatt simulations
     Arguments:
@@ -22,6 +22,10 @@ def findBestFittingPartType(selectedParticleTypes, xrSpec,verbose=False):
                 if Window:         average over (vertical wind corrected) DV and plot vs DWR
             (optional)
             verbose: display some progress with print commands
+            whichDWRsToUse: select which DWR-vel relation is used
+                both: use DWR_X_Ka and DWR_Ka_W
+                DWR_X_Ka: use only DWR_X_Ka
+                DWR_Ka_W: use only DWR_Ka_W
         OUTPUT: 
             bestPartType: particle type which fits the observation the best
             orderedListPartType: list of particle types ordered by how well they fit the observations
@@ -41,7 +45,7 @@ def findBestFittingPartType(selectedParticleTypes, xrSpec,verbose=False):
     #initialize RMSE variables to find best parameter
     RMSE = dict()
     RMSEall = dict()
-    RMSEsumMin = np.inf 
+    RMSEfinalMin = np.inf 
     for pType in selectedParticleTypes:
         #get particle properties
         Zx, Zk, Zw, Dmax, K2, velModel = sc.model3fOne(pType)
@@ -64,14 +68,26 @@ def findBestFittingPartType(selectedParticleTypes, xrSpec,verbose=False):
             RMSE[key] = np.average((DWRObsClean.doppler - np.ma.masked_invalid(velModelAtObsDWRgridClean))**2) #this is actually the MSE (mean squared error) and not RMSE, but this is needed in the next lines
 
         #sum up both RMSE's
-        RMSEsum         = np.sqrt((RMSE["DWR_X_Ka"] + RMSE["DWR_Ka_W"])/2)
-        RMSEall[pType]  = RMSEsum
+        if whichDWRsToUse=="both":
+            RMSEfinal         = np.sqrt((RMSE["DWR_X_Ka"] + RMSE["DWR_Ka_W"])/2)
+        elif whichDWRsToUse=="DWR_X_Ka":
+            RMSEfinal         = np.sqrt(RMSE["DWR_X_Ka"])
+        elif whichDWRsToUse=="DWR_Ka_W":
+            RMSEfinal         = np.sqrt(RMSE["DWR_Ka_W"])
 
-        if RMSEsum<RMSEsumMin:
-            RMSEsumMin = RMSEsum
+        RMSEall[pType]  = RMSEfinal
+
+        if RMSEfinal<RMSEfinalMin:
+            RMSEfinalMin = RMSEfinal
             bestPartType = pType
         if verbose:
-            print(pType,"MSExk",RMSE["DWR_X_Ka"],"MSEkw",RMSE["DWR_Ka_W"],"RMSExk_kw",RMSEsum) #,"RMSExk_kwMin",RMSEsumMin,"bestPartType",bestPartType)
+            if whichDWRsToUse=="both":
+                print(pType,"MSExk",RMSE["DWR_X_Ka"],"MSEkw",RMSE["DWR_Ka_W"],"RMSExk_kw",RMSEfinal)
+            elif whichDWRsToUse=="DWR_X_Ka":
+            
+                print(pType,"MSExk",RMSEfinal)
+            elif whichDWRsToUse=="DWR_Ka_W":
+                print(pType,"MSEkw",RMSEfinal)
 
     orderedListPartType = {k: v for k, v in sorted(RMSEall.items(), key=lambda item: item[1])}.keys()
     if verbose:
