@@ -27,7 +27,7 @@ def getPandasTime(date=None,time=None):
 
     return tStep
 
-def regridSpec(data,newVelRes=0.01,windowWidth=10,vRange=[-5,1]):
+def regridSpec(data,newVelRes=0.01,windowWidth=10,vRange=[-5,1],verbose="False"):
     '''
     regrid the spectra to a common doppler velocity grid
     The regridded spectra has typically a finer, but smoothed grid compared to the input spectra.
@@ -38,6 +38,7 @@ def regridSpec(data,newVelRes=0.01,windowWidth=10,vRange=[-5,1]):
             newVelRes [m/s]: velocity resolution of the regridded spectra
             windowWidth [bins]: width of moving average window
             vRange [m/s]: velocity range of regridded spectra
+            verbose:                display some output with print()-commands
         OUTPUT:
             dataOut: regridded spectra
     '''
@@ -54,7 +55,8 @@ def regridSpec(data,newVelRes=0.01,windowWidth=10,vRange=[-5,1]):
     XSpecInt = XSpecInt*newVelRes
     # rename doppler velocity grid
     XSpecInt = XSpecInt.rename({'dopplerX':'doppler'})
-    print('interp X done')
+    if verbose:
+        print('interp X done')
 
     #normalization, interpolation and renaming for Ka-Band same as for X-Band above (TODO: wouldnt that be better in a for-loop?)
     dvKa = np.abs(np.diff(data['dopplerKa'].values)[0])
@@ -62,7 +64,8 @@ def regridSpec(data,newVelRes=0.01,windowWidth=10,vRange=[-5,1]):
     KaSpecInt = Ka.interp(dopplerKa=newVel)
     KaSpecInt = KaSpecInt*newVelRes
     KaSpecInt = KaSpecInt.rename({'dopplerKa':'doppler'})
-    print('interp Ka done')
+    if verbose:
+        print('interp Ka done')
 
     #normalization, interpolation and renaming for W-Band same as for X-Band above (TODO: wouldnt that be better in a for-loop?)
     dvW = np.abs(np.diff(data['dopplerW'].values)[0])
@@ -70,7 +73,8 @@ def regridSpec(data,newVelRes=0.01,windowWidth=10,vRange=[-5,1]):
     WSpecInt = W.interp(dopplerW=newVel)
     WSpecInt = WSpecInt*newVelRes
     WSpecInt = WSpecInt.rename({'dopplerW':'doppler'})
-    print('interp W done')
+    if verbose:
+        print('interp W done')
 
     ##correct noise: make true linear (saved are linear units to which the log-lin transformation was applied once to much)
     data["KaSpecNoiseH"] = 10.*np.log10(10.*np.log10(data["KaSpecNoiseH"]))
@@ -83,7 +87,7 @@ def regridSpec(data,newVelRes=0.01,windowWidth=10,vRange=[-5,1]):
 
     return dataOut
 
-def addOffsets(data,data2,test_interp=False):
+def addOffsets(data,data2,test_interp=False,verbose="False"):
     '''
     add offsets and atmospheric attenuation stored in the level 2 data to the level 0 data
     Arguments:
@@ -93,9 +97,11 @@ def addOffsets(data,data2,test_interp=False):
             data: level 0 data containing the spectral data
         optional
             test_interp: test interpolation against level 2 data
+            verbose:                display some output with print()-commands
     '''
     data['XSpecH'] = 10*np.log10(data['XSpecH']) + data2.rain_offset_X + data2.offset_x + data2.pia_x
-    print('X offsets added')
+    if verbose:
+        print('X offsets added')
     data['KaSpecH'] = 10*np.log10(data['KaSpecH']) + data2.rain_offset_Ka +  data2.pia_ka
     data['WSpecH'] = 10*np.log10(data['WSpecH']) + data2.rain_offset_W + data2.offset_w + data2.pia_w
 
@@ -118,7 +124,7 @@ def addOffsets(data,data2,test_interp=False):
 
     return data
 
-def loadTripexPol(dataPath="/data/obs/campaigns/tripex-pol/processed/",date="20190113",time="06:18:04",tRange=0,hRange=180,hcenter=1000.):
+def loadTripexPol(dataPath="/data/obs/campaigns/tripex-pol/processed/",date="20190113",time="06:18:04",tRange=0,hRange=180,hcenter=1000.,verbose="False"):
     '''
     load spectra (+ regrid, offset-correction, ...) from level 0 data of the Tripex-pol dataset 
     Arguments:
@@ -129,6 +135,7 @@ def loadTripexPol(dataPath="/data/obs/campaigns/tripex-pol/processed/",date="201
             tRange [Delta min]: time range
             hRange [Delta m]:   height range
             hcenter [m]:        center of height range
+            verbose:            display some output with print()-commands
         OUTPUT:
             xrSpec: spectra which has been read in, regridded, corrected for offsets + information on pressure and noise
     '''
@@ -149,7 +156,7 @@ def loadTripexPol(dataPath="/data/obs/campaigns/tripex-pol/processed/",date="201
     dataLV0 = xr.decode_cf(dataLV0) 
     #select time step
     xrSpec = dataLV0.sel(time=slice(tStep-pd.Timedelta(minutes=tRange/2.),tStep+pd.Timedelta(minutes=tRange/2.)),range=slice(hcenter-hRange/2,hcenter+hRange/2))
-    xrSpec = regridSpec(xrSpec,windowWidth=10)
+    xrSpec = regridSpec(xrSpec,windowWidth=10,verbose=verbose)
 
     ####load LEVEL2 data
     dataLV2 = xr.open_mfdataset(dataPath + "tripex_pol_level_2/" + date + '_tripex_pol_3fr_L2_mom.nc')
@@ -157,13 +164,13 @@ def loadTripexPol(dataPath="/data/obs/campaigns/tripex-pol/processed/",date="201
     dataLV2 = dataLV2.sel(time=slice(tStep-pd.Timedelta(minutes=tRange/2.),tStep+pd.Timedelta(minutes=tRange/2.)),range=slice(hcenter-hRange/2,hcenter+hRange/2))
         
     #get offsets from LV2 data
-    xrSpec       = addOffsets(xrSpec,dataLV2)
+    xrSpec       = addOffsets(xrSpec,dataLV2,verbose=verbose)
     #add pressure to the file (needed for density correction of fall speed)
     xrSpec["pa"] = dataLV2["pa"] 
     
     return xrSpec
 
-def loadSpectra(loadSample=True,dataPath=None,createSample=False,date="20190113",time="06:18:04",tRange=1,hRange=180,hcenter=1600):
+def loadSpectra(loadSample=True,dataPath=None,createSample=False,date="20190113",time="06:18:04",tRange=1,hRange=180,hcenter=1600,verbose=False):
     '''
     load Doppler spectra data from 1) any dataset (requires some additional implementions-  maybe in a git-branch) 2) the Tripex-pol dataset  3) the sample_data folder
     Arguments:
@@ -176,6 +183,7 @@ def loadSpectra(loadSample=True,dataPath=None,createSample=False,date="20190113"
             tRange [Delta min]:     time range to read
             hRange [Delta m]:       height range to read
             hcenter[m]:             center of height range
+            verbose:                display some output with print()-commands
         OUTPUT:
             xrSpec: xarray-dataset containing the spectra data
     '''
@@ -197,7 +205,7 @@ def loadSpectra(loadSample=True,dataPath=None,createSample=False,date="20190113"
         else:
             fileListForDay = glob.glob(sample_path.split("_tR")[0] + "*")
             if len(fileListForDay)==0:
-                print("ERROR: no data for date: " + date + " and time" + time + "in PSDretrieval/sample_data yet")
+                print("ERROR: no data for date: " + date + " and time: " + time + " in PSDretrieval/sample_data yet")
                 sys.exit(0)
             else:
                 print("ERROR: check time Range (tRange", tRange, "), height (hcenter", hcenter, ") and height-Range (hRange", hRange, ") in call of loadSpectra()\n"
@@ -213,7 +221,7 @@ def loadSpectra(loadSample=True,dataPath=None,createSample=False,date="20190113"
             '''
             if "tripex-pol" in dataPath:
                 print("load file:"  + dataPath)
-                xrSpec = loadTripexPol(dataPath=dataPath,date=date,time=time,tRange=tRange,hcenter=hcenter,hRange=hRange)
+                xrSpec = loadTripexPol(dataPath=dataPath,date=date,time=time,tRange=tRange,hcenter=hcenter,hRange=hRange,verbose=verbose)
                 if createSample:
                     xrSpec.to_netcdf(sample_path)
             else:

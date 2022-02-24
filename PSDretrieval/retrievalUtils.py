@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from PSDretrieval import scattering as sc
 from IPython.terminal.debugger import set_trace
 
-def findBestFittingPartType(selectedParticleTypes, xrSpec):
+def findBestFittingPartType(selectedParticleTypes, xrSpec,verbose=False):
     '''
     plot Doppler velocity vs. spectral DWR of X-Ka and Ka-W band combinations (kind of a v-D plot) from the snowScatt simulations
     Arguments:
@@ -20,6 +20,8 @@ def findBestFittingPartType(selectedParticleTypes, xrSpec):
             xrSpec [can be a single spectra or a time-height window]: xarray containing all spectra information (including DWRs with labels "DWR_X_Ka" and "DWR_Ka_W")
                 if single spectra: just plot DV vs. DWRs
                 if Window:         average over (vertical wind corrected) DV and plot vs DWR
+            (optional)
+            verbose: display some progress with print commands
         OUTPUT: 
             bestPartType: particle type which fits the observation the best
             orderedListPartType: list of particle types ordered by how well they fit the observations
@@ -68,10 +70,13 @@ def findBestFittingPartType(selectedParticleTypes, xrSpec):
         if RMSEsum<RMSEsumMin:
             RMSEsumMin = RMSEsum
             bestPartType = pType
-
-        print(pType,"MSExk",RMSE["DWR_X_Ka"],"MSEkw",RMSE["DWR_Ka_W"],"RMSExk_kw",RMSEsum) #,"RMSExk_kwMin",RMSEsumMin,"bestPartType",bestPartType)
+        if verbose:
+            print(pType,"MSExk",RMSE["DWR_X_Ka"],"MSEkw",RMSE["DWR_Ka_W"],"RMSExk_kw",RMSEsum) #,"RMSExk_kwMin",RMSEsumMin,"bestPartType",bestPartType)
 
     orderedListPartType = {k: v for k, v in sorted(RMSEall.items(), key=lambda item: item[1])}.keys()
-    print("best Ptype:",bestPartType,"ordered list",orderedListPartType)
+    if verbose:
+        print("best Ptype:",bestPartType,"ordered list",orderedListPartType)
+    else:
+        print("best Ptype:",bestPartType)
 
     return bestPartType,orderedListPartType

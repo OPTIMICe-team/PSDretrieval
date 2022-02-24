@@ -9,15 +9,19 @@ import snowScatt
 from IPython.terminal.debugger import set_trace
 
 
-#define time
+###define time
 date    = "20190113"
-time    = "06:18:04"
-hRange  = 1600
+#unrimed 
+#time    = "06:18:04"
+#hRange  = 1600
+#rimed
+time    = "06:43:40"
+hRange  = 2000
 
 ###load Data
 #load spectra
-SpecWindow  = pR.loadSpectra()
-#SpecWindow  = pR.loadSpectra(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/processed/",createSample=True,date=date,time=time,tRange=1,hRange=180,hcenter=hRange)
+#SpecWindow  = pR.loadSpectra()
+SpecWindow  = pR.loadSpectra(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/processed/",createSample=True,date=date,time=time,tRange=1,hRange=180,hcenter=hRange)
 
 PeaksWindow  = pR.loadPeaks()
 #PeaksWindow  = pR.loadPeaks(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/spectralPeaks/",createSample=True,date=date,time=time,tRange=1,hRange=180,hcenter=hRange)
@@ -38,12 +42,14 @@ SpecWindow = pR.cutLowZe(SpecWindow,zeThreshold=-20)
 __ = pl.plotSDWRvsDVobs(SpecWindow,axes2)
 
 #get names of all particle types
-allParticleTypes        = [*snowScatt.snowLibrary._fileList.keys()] #read https://www.python.org/dev/peps/pep-0448/ for the [*...] formalism
-allRimDegr = [k for k in allParticleTypes if 'vonTerzi_mixcoldend' in k]
-selectedParticleTypes   = ["vonTerzi_mixcoldend","vonTerzi_mixcoldend_rimed05"]
+AllParticleTypes   = [*snowScatt.snowLibrary._fileList.keys()] #read https://www.python.org/dev/peps/pep-0448/ for the [*...] formalism
+#ParticleTypesList   = AllParticleTypes
+#ParticleTypesList   = [k for k in allParticleTypes if 'vonTerzi_mixcoldend' in k]
+ParticleTypesList   = ["vonTerzi_mixcoldend","vonTerzi_mixcoldend_rimed05"]
+ParticleTypesList   = ["vonTerzi_mixcoldend_rimed02","vonTerzi_mixcoldend_rimed04"]
 
 #find best fitting particle type
-[bestPartType,orderedListPartType] = rU.findBestFittingPartType(allParticleTypes,SpecWindow)
+[bestPartType,orderedListPartType] = rU.findBestFittingPartType(ParticleTypesList,SpecWindow,verbose=True)
 
 #plot sDWR vs DV for best fitting particle type
 Zx, Zk, Zw, Dmax, K2, vel = sc.model3fOne(bestPartType)
