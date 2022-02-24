@@ -24,7 +24,6 @@ def findBestFittingPartType(selectedParticleTypes, xrSpec):
             bestPartType: particle type which fits the observation the best
             orderedListPartType: list of particle types ordered by how well they fit the observations
     '''
-    from sklearn.metrics import mean_squared_error
 
     print("Start: find best matching particle type in DV-DWR spaces")
 
@@ -49,7 +48,6 @@ def findBestFittingPartType(selectedParticleTypes, xrSpec):
         DWRmodel = dict()
         DWRmodel["DWR_X_Ka"]  = Zx-Zk
         DWRmodel["DWR_Ka_W"] = Zk-Zw
-
         for key in DWRkeys:
             DWRobs = xrSpecCopy[key].copy()
             
@@ -61,18 +59,19 @@ def findBestFittingPartType(selectedParticleTypes, xrSpec):
             velModelAtObsDWRgridClean = velModelAtObsDWRgrid[~np.isnan(velModelAtObsDWRgrid)]
 
             #calculate the RMSE
-            RMSE[key] = np.sqrt(mean_squared_error(DWRObsClean.doppler,np.ma.masked_invalid(velModelAtObsDWRgridClean)))
+            RMSE[key] = np.average((DWRObsClean.doppler - np.ma.masked_invalid(velModelAtObsDWRgridClean))**2) #this is actually the MSE (mean squared error) and not RMSE, but this is needed in the next lines
 
         #sum up both RMSE's
-        RMSEsum   = RMSE["DWR_X_Ka"] + RMSE["DWR_Ka_W"]
+        RMSEsum         = np.sqrt((RMSE["DWR_X_Ka"] + RMSE["DWR_Ka_W"])/2)
+        RMSEall[pType]  = RMSEsum
 
         if RMSEsum<RMSEsumMin:
             RMSEsumMin = RMSEsum
             bestPartType = pType
 
-        print(pType,"RMSExk",RMSE["DWR_X_Ka"],"RMSEkw",RMSE["DWR_Ka_W"],"RMSEsum",RMSEsum,"RMSEsumMin",RMSEsumMin,"bestPartType",bestPartType)
+        print(pType,"MSExk",RMSE["DWR_X_Ka"],"MSEkw",RMSE["DWR_Ka_W"],"RMSExk_kw",RMSEsum) #,"RMSExk_kwMin",RMSEsumMin,"bestPartType",bestPartType)
 
-    orderedListPartType = [] #TODO: implement
-    print("best Ptype:",bestPartType)
+    orderedListPartType = {k: v for k, v in sorted(RMSEall.items(), key=lambda item: item[1])}.keys()
+    print("best Ptype:",bestPartType,"ordered list",orderedListPartType)
 
     return bestPartType,orderedListPartType

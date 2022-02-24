@@ -39,8 +39,7 @@ __ = pl.plotSDWRvsDVobs(SpecWindow,axes2)
 
 #get names of all particle types
 allParticleTypes        = [*snowScatt.snowLibrary._fileList.keys()] #read https://www.python.org/dev/peps/pep-0448/ for the [*...] formalism
-#aggType = 'vonTerzi_mixcoldend'
-#allRimDegr = [k for k in allParticleTypes if aggType in k]
+allRimDegr = [k for k in allParticleTypes if 'vonTerzi_mixcoldend' in k]
 selectedParticleTypes   = ["vonTerzi_mixcoldend","vonTerzi_mixcoldend_rimed05"]
 
 #find best fitting particle type
