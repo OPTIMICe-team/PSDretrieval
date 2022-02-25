@@ -152,7 +152,7 @@ def plotNumCon(NumCon,axes,xVars,xLabels):
         ax.plot(xVar,NumCon)
         #set labels
         ax.set_xlabel(xLabel)
-        ax.set_ylabel("N [#/m$^3$]")
+        ax.set_ylabel("N [#/m$^3 / (m/s)$]")
 
     return axes
 

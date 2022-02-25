@@ -39,13 +39,13 @@ SpecSingleWshifted  = pR.shiftSpectra(SpecSingle)
 
 #plot Spectra and sDWR
 fig,ax = plt.subplots(nrows=1,ncols=1)
-fig2,axes2 = plt.subplots(nrows=1,ncols=2)
+#fig2,axes2 = plt.subplots(nrows=1,ncols=2)
 __ = pl.plotObsSpectra(SpecSingleWshifted,ax)
 #__ = pl.plotSDWRvsDVobs(SpecSingle,axes2)
 
 #apply stricter noise threshold (needed for particleType selection of snowScatt models)
 SpecWindow = pR.cutLowZe(SpecWindow,zeThreshold=-20)
-__ = pl.plotSDWRvsDVobs(SpecWindow,axes2)
+#__ = pl.plotSDWRvsDVobs(SpecWindow,axes2)
 
 #get names of all particle types
 AllParticleTypes   = [*snowScatt.snowLibrary._fileList.keys()] #read https://www.python.org/dev/peps/pep-0448/ for the [*...] formalism
@@ -71,9 +71,9 @@ fig3,ax = plt.subplots(nrows=1,ncols=1)
 ax = pl.plotSinglePartZe(bestPartType,ax,freq="Ka")
 
 ##no, finally calculate the size distribution
-velObs,NumCon,DmaxAtObsDVgrid = rU.calculateNumberForEachDVbin(ZkModel,SpecSingleWshifted.KaSpecH.values,velModel,-SpecSingleWshifted.KaSpecH.doppler.values,DmaxModel=Dmax)
-#plot the number concentration vs.
+velObs,NumConNorm,DmaxAtObsDVgrid = rU.calculateNumberForEachDVbin(ZkModel,SpecSingleWshifted.KaSpecH.values,velModel,-SpecSingleWshifted.KaSpecH.doppler.values,DmaxModel=Dmax)
+#plot the number concentration vs. velocity and Dmax
 fig4,axes3 = plt.subplots(nrows=1,ncols=2)
-axes3 = pl.plotNumCon(NumCon,axes3,[velObs,DmaxAtObsDVgrid*1e3],["vel [m/s]","Dmax [mm]"])
+axes3 = pl.plotNumCon(NumConNorm,axes3,[velObs,DmaxAtObsDVgrid*1e3],["vel [m/s]","Dmax [mm]"])
 
 plt.show()
