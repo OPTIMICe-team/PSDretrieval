@@ -63,8 +63,8 @@ ZxModel, ZkModel, ZwModel, Dmax, K2, velModel = sc.model3fOne(bestPartType)
 DWRxk = ZxModel - ZkModel; DWRkw = ZkModel - ZwModel
 DWRxkModelUnAmb,ax = sc.getUnambigousDWRdmax(Dmax,DWRxk)
 DWRkwModelUnAmb,ax = sc.getUnambigousDWRdmax(Dmax,DWRkw)
-axes2 = pl.plotSDWRvsDVmodel(velModel,DWRxkModelUnAmb,DWRkwModelUnAmb,axes2,bestPartType)
-axes2[0].legend()
+#axes2 = pl.plotSDWRvsDVmodel(velModel,DWRxkModelUnAmb,DWRkwModelUnAmb,axes2,bestPartType)
+#axes2[0].legend()
 
 #display the single particle reflectivity
 fig3,ax = plt.subplots(nrows=1,ncols=1)

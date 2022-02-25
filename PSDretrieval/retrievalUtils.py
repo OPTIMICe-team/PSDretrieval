@@ -105,19 +105,62 @@ def dB(x): #conversion: linear [mm**6/m**3] to logarithmic [dB]
 def Bd(x): #conversion: logarithmic [dB] to linear [mm**6/m**3]
     return 10.0**(0.1*x)
 
-def calculateNumberForEachDVbin(ZkModel,ZkObs,velModel,velObs,DmaxModel=None):
+def removeDropletsFromSpectra(ZkObs,velObs,Nsmooth=10,vSpecLims=[0.0,1.0]):
+    '''
+    cut the cloud droplet peak from the spectra: 1. smooth spectra 2. find minimum 3. select reasonable minima 4. mask values with DV lower than minimum
+    Arguments:
+        INPUT & OUTPUT:
+            ZkObs   [np.array, dB]:     observed spectral power of the Ka-Band
+            velObs  [np.array, m/s]:    velocity from the observation corresponding to ZkObs (positive values are downward, towards the radar)
+        INPUT:
+            (optional)
+            Nsmooth [integer]:          number of bins to smooth before finding minimum
+            vSpecLims[float,float]:     Limits where minimum is allowed to be
+    '''
+    from scipy.signal import argrelextrema
+    def moving_average(x, window):
+        return np.convolve(x, np.ones(window), 'valid') / window
+
+    # 1. smooth spectra
+    ZkObsSmoothed = moving_average(ZkObs,10)
+    velObsSmoothed = moving_average(velObs,10)
+
+    # 2. find minimum
+    i_minima = argrelextrema(ZkObsSmoothed, np.less)    
+
+    # 3. select reasonable minima
+    allMin = velObs[i_minima]
+    reasonableMins = list(filter(lambda a: vSpecLims[0]<a<vSpecLims[1], allMin))
+    if len(reasonableMins)>1:
+        print("Error: more than one minimum (separating the cloud droplet peak and the ice peak) found in interval []" 
+          + str(vLowSpecMin) +"," + str(vHighSpecMin) + "]; exit here; you may change the vSpecLims")
+
+    # 4. mask values with DV lower than minimum
+    velObsWithoutDroplets = velObs[velObs>reasonableMins].copy()
+    ZkObsWithoutDroplets  = ZkObs[velObs>reasonableMins].copy()
+
+    return ZkObsWithoutDroplets,velObsWithoutDroplets
+
+def calculateNumberForEachDVbin(ZkModel,ZkObs,velModel,velObs,DmaxModel=None,removeDroplets=True):
     '''
     calculate number concentration for each doppler velocity (DV) bin
     Arguments:
         INPUT:
-            ZkModel[np.array, dB]:      single particle reflectivity of the Ka-Band
-            ZkObs[np.array, dB]:        observed spectral power of the Ka-Band
+            ZkModel [np.array, dB]:     single particle reflectivity of the Ka-Band
+            ZkObs   [np.array, dB]:     observed spectral power of the Ka-Band
             velModel[np.array, m/s]:    velocity from the model corresponding to ZkModel (positive values are downward, towards the radar)
-            velObs[np.array, m/s]:      velocity from the observation corresponding to ZkObs (positive values are downward, towards the radar)
+            velObs  [np.array, m/s]:    velocity from the observation corresponding to ZkObs (positive values are downward, towards the radar)
             (optional)
-            DmaxModel[np.array, m]:       if given this array is also converted to the obs-grid
+            DmaxModel[np.array, m]:     if given this array is also converted to the obs-grid
+            removeDroplets[boolean]:    remove the part of the spectra with the supercooled droplets
         OUTPUT: 
+            velObs [np.array, m/s]:     part of DV array where number concentration can be retrieved
+            NumConNorm [np.array, #/m^3/(m/s)]: Normed number concentration
+            DmaxModelAtObsDVgrid [np.array, m]: maximum dimension corresponding to velObs
     '''
+
+    if removeDroplets:
+        ZkObs,velObs = removeDropletsFromSpectra(ZkObs,velObs)
 
     #convert reflectivities from dB to linear units
     ZkModelLin  = Bd(ZkModel)
