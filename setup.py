@@ -17,7 +17,6 @@ setup(name='PSDretrieval',
     },
     long_description = long_description,
     license = 'GPL',
-    include_package_data=True
      )
 
 

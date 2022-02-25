@@ -98,3 +98,38 @@ def findBestFittingPartType(selectedParticleTypes, xrSpec,verbose=False,whichDWR
         print("best Ptype:",bestPartType)
 
     return bestPartType,orderedListPartType
+
+def dB(x): #conversion: linear [mm**6/m**3] to logarithmic [dB]
+    return 10.0*np.log10(x)
+
+def Bd(x): #conversion: logarithmic [dB] to linear [mm**6/m**3]
+    return 10.0**(0.1*x)
+
+def calculateNumberForEachDVbin(ZkModel,ZkObs,velModel,velObs,DmaxModel=None):
+    '''
+    calculate number concentration for each doppler velocity (DV) bin
+    Arguments:
+        INPUT:
+            ZkModel[np.array, dB]:      single particle reflectivity of the Ka-Band
+            ZkObs[np.array, dB]:        observed spectral power of the Ka-Band
+            velModel[np.array, m/s]:    velocity from the model corresponding to ZkModel (positive values are downward, towards the radar)
+            velObs[np.array, m/s]:      velocity from the observation corresponding to ZkObs (positive values are downward, towards the radar)
+            (optional)
+            DmaxModel[np.array, m]:       if given this array is also converted to the obs-grid
+        OUTPUT: 
+    '''
+
+    #convert reflectivities from dB to linear units
+    ZkModelLin  = Bd(ZkModel)
+    ZkObsLin    = Bd(ZkObs)
+
+    #interpolate the Model Ze values to the DV-grid of the observations
+    ZkModelLinAtObsDVgrid = np.interp(velObs,velModel,ZkModelLin)
+    if not DmaxModel is None:
+        DmaxModelAtObsDVgrid = np.interp(velObs,velModel,DmaxModel)
+    else:
+        DmaxModelAtObsDVgrid = None
+
+    NumCon = ZkObsLin/ZkModelLinAtObsDVgrid
+
+    return velObs,NumCon,DmaxModelAtObsDVgrid

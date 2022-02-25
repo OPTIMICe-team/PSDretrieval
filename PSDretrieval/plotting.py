@@ -5,6 +5,7 @@
 all plotting routines
 '''
 from IPython.terminal.debugger import set_trace
+from PSDretrieval import scattering as sc
 
 def plotObsSpectra(xrSpec,ax):
     '''
@@ -100,3 +101,33 @@ def plotSDWRvsDVmodel(vel,DWRxk,DWRkw,axes,pType):
     axes[1].set_xlabel("DWR$_{Ka,W}$ [dB]")
 
     return axes
+
+def plotSinglePartZe(pType,ax,freq="Ka"):
+    '''
+    plot single particle backscattering coefficient (needed for retrieval) vs. velocity
+    Arguments:
+        INPUT:
+            pType[str]:     particle type from snowScatt
+            (optional)
+            freq [str]:     frequency (options are ["X","Ka","W"])
+        IN- & OUTPUT: 
+            ax: axes handles
+    '''
+
+    #get properties from snowScatt
+    Zx, Zk, Zw, Dmax, K2, vel = sc.model3fOne(pType)
+
+    if freq=="X":
+        Zone = Zx
+    elif freq=="Ka":
+        Zone = Zk
+    elif freq=="W":
+        Zone = Zw
+
+    ax.plot(vel,Zone)
+    ax.set_xlabel("DV [m/s]")
+    ax.set_ylabel("Zone [dB]")
+
+    return ax
+
+    
