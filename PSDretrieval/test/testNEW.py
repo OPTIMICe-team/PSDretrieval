@@ -72,8 +72,8 @@ ax = pl.plotSinglePartZe(bestPartType,ax,freq="Ka")
 
 ##no, finally calculate the size distribution
 velObs,NumCon,DmaxAtObsDVgrid = rU.calculateNumberForEachDVbin(ZkModel,SpecSingleWshifted.KaSpecH.values,velModel,-SpecSingleWshifted.KaSpecH.doppler.values,DmaxModel=Dmax)
-
 #plot the number concentration vs.
 fig4,axes3 = plt.subplots(nrows=1,ncols=2)
+axes3 = pl.plotNumCon(NumCon,axes3,[velObs,DmaxAtObsDVgrid*1e3],["vel [m/s]","Dmax [mm]"])
 
 plt.show()

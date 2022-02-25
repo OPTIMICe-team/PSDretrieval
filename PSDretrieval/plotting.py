@@ -131,3 +131,28 @@ def plotSinglePartZe(pType,ax,freq="Ka"):
     return ax
 
     
+def plotNumCon(NumCon,axes,xVars,xLabels):
+    '''
+    plot number concentration against some other values
+    Arguments:
+        INPUT: (all spectral variables)
+            NumCon [numpy-array, #/m^3]:  number concentration
+            xVars [tuple]:                each element of the tuple contains an array which is used as the x-axis (must have same length as NumCon)
+        IN - & OUTPUT: 
+            axes: axes handles
+    '''
+
+    #check if axes, xVars, and xLabels match in size
+    if not (axes.flatten().shape[0]==len(xVars)==len(xLabels)):
+        print("ERROR: 'axes' must have same length as 'xVars' and 'xLabels'")
+
+    #loop over all x-variables
+    for xVar,xLabel,ax in zip(xVars,xLabels,axes):
+        #plot
+        ax.plot(xVar,NumCon)
+        #set labels
+        ax.set_xlabel(xLabel)
+        ax.set_ylabel("N [#/m$^3$]")
+
+    return axes
+
