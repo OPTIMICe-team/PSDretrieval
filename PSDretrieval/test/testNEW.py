@@ -33,7 +33,8 @@ else:
     PeaksWindow  = pR.loadPeaks(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/spectralPeaks/",createSample=True,date=date,time=time,tRange=1,hRange=180,hcenter=hRange)
 
 #get vertical wind information from the Spectral data
-SpecWindow = pR.addVerticalWindToSpecWindow(SpecWindow,PeaksWindow)
+#SpecWindow = pR.addVerticalWindToSpecWindow(SpecWindow,PeaksWindow)
+SpecWindow = pR.addVerticalWindToSpecWindow(SpecWindow,None,addManually=True,manualW=0.5)
 SpecSingle  = pR.selectSingleTimeHeight(SpecWindow)
 SpecSingleWshifted  = pR.shiftSpectra(SpecSingle)
 
@@ -44,36 +45,36 @@ __ = pl.plotObsSpectra(SpecSingleWshifted,ax)
 #__ = pl.plotSDWRvsDVobs(SpecSingle,axes2)
 
 #apply stricter noise threshold (needed for particleType selection of snowScatt models)
-SpecWindow = pR.cutLowZe(SpecWindow,zeThreshold=-20)
+#SpecWindow = pR.cutLowZe(SpecWindow,zeThreshold=-20)
 #__ = pl.plotSDWRvsDVobs(SpecWindow,axes2)
 
 #get names of all particle types
-AllParticleTypes   = [*snowScatt.snowLibrary._fileList.keys()] #read https://www.python.org/dev/peps/pep-0448/ for the [*...] formalism
-ParticleTypesList   = AllParticleTypes
+#AllParticleTypes   = [*snowScatt.snowLibrary._fileList.keys()] #read https://www.python.org/dev/peps/pep-0448/ for the [*...] formalism
+#ParticleTypesList   = AllParticleTypes
 #ParticleTypesList   = [k for k in allParticleTypes if 'vonTerzi_mixcoldend' in k]
 #ParticleTypesList   = ["vonTerzi_mixcoldend","vonTerzi_column"]
 #ParticleTypesList   = ["vonTerzi_mixcoldend_rimed02","vonTerzi_mixcoldend_rimed04"]
 
 #find best fitting particle type
 #[bestPartType,orderedListPartType] = rU.findBestFittingPartType(ParticleTypesList,SpecWindow,verbose=True,whichDWRsToUse="DWR_Ka_W")
-bestPartType = "vonTerzi_column"
+#bestPartType = "vonTerzi_column"
 
 #plot sDWR vs DV for best fitting particle type
-ZxModel, ZkModel, ZwModel, Dmax, K2, velModel = sc.model3fOne(bestPartType)
-DWRxk = ZxModel - ZkModel; DWRkw = ZkModel - ZwModel
-DWRxkModelUnAmb,ax = sc.getUnambigousDWRdmax(Dmax,DWRxk)
-DWRkwModelUnAmb,ax = sc.getUnambigousDWRdmax(Dmax,DWRkw)
+#ZxModel, ZkModel, ZwModel, Dmax, K2, velModel = sc.model3fOne(bestPartType)
+#DWRxk = ZxModel - ZkModel; DWRkw = ZkModel - ZwModel
+#DWRxkModelUnAmb,ax = sc.getUnambigousDWRdmax(Dmax,DWRxk)
+#DWRkwModelUnAmb,ax = sc.getUnambigousDWRdmax(Dmax,DWRkw)
 #axes2 = pl.plotSDWRvsDVmodel(velModel,DWRxkModelUnAmb,DWRkwModelUnAmb,axes2,bestPartType)
 #axes2[0].legend()
 
 #display the single particle reflectivity
-fig3,ax = plt.subplots(nrows=1,ncols=1)
-ax = pl.plotSinglePartZe(bestPartType,ax,freq="Ka")
+#fig3,ax = plt.subplots(nrows=1,ncols=1)
+#ax = pl.plotSinglePartZe(bestPartType,ax,freq="Ka")
 
 ##no, finally calculate the size distribution
-velObs,NumConNorm,DmaxAtObsDVgrid = rU.calculateNumberForEachDVbin(ZkModel,SpecSingleWshifted.KaSpecH.values,velModel,-SpecSingleWshifted.KaSpecH.doppler.values,DmaxModel=Dmax)
+#velObs,NumConNorm,DmaxAtObsDVgrid = rU.calculateNumberForEachDVbin(ZkModel,SpecSingleWshifted.KaSpecH.values,velModel,-SpecSingleWshifted.KaSpecH.doppler.values,DmaxModel=Dmax)
 #plot the number concentration vs. velocity and Dmax
-fig4,axes3 = plt.subplots(nrows=1,ncols=2)
-axes3 = pl.plotNumCon(NumConNorm,axes3,[velObs,DmaxAtObsDVgrid*1e3],["vel [m/s]","Dmax [mm]"])
+#fig4,axes3 = plt.subplots(nrows=1,ncols=2)
+#axes3 = pl.plotNumCon(NumConNorm,axes3,[velObs,DmaxAtObsDVgrid*1e3],["vel [m/s]","Dmax [mm]"])
 
 plt.show()

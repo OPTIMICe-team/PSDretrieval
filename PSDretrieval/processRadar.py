@@ -368,44 +368,54 @@ def cutLowZe(xrSpec,zeThreshold=-30):
 
     return xrSpec
 
-def addVerticalWindToSpecWindow(SpecWindow,PeaksWindow,ZeRange=[-50,30]):
+def addVerticalWindToSpecWindow(SpecWindow,PeaksWindow,ZeRange=[-50,30],addManually=False,manualW=0.0):
     '''
-    Diagnose the vertical wind by the position of the cloud droplet peak and add this information to the SpecWindow
+    Diagnose the vertical wind by the position of the cloud droplet peak from the Peaks Window (or manually set the offset) and add this information to the SpecWindow
     Arguments:
         INPUT:    
             PeaksWindow:    Identified peaks in the selected time-height window
-            optional
+            (optional)
             ZeRange:        Ze-range of peaks to be considered non-sedimenting cloud droplets
+            addManually:    add offset manually
+            manualW[float m/s]: offset added to whole spectral window
         IN- & OUTPUT:
             SpecWindow: spectra from a time-height window
         OUTPUT:
             wArray:     array (time-height window) with estimated vertical wind 
     '''
 
-    ####create boolean variable in PeaksWindow: 1: peaks are in ZeRange, and thus probably cloud droplets 2: peaks are outsided ZeRange and thus might not be caused by cloud droplets
+    if not addManually and PeaksWindow is None:
+        print("Error: Currently PeaksWindow data must be given if W is not added manually")
+        sys.exit(0)
+
     #create new variables by copying existing variables and replace the contents with nans
-    dummyVar = PeaksWindow["peakPowClass"].sel(peakIndex=0) #get a dummy variable to create new variables #TODO: there must be a better way to do that
-    for key in ["Peak1InZeRange","Peak2InZeRange"]:
-        PeaksWindow = eval("PeaksWindow.assign(" + key + "=dummyVar)")
-        PeaksWindow[key].values = np.nan * np.ones_like(dummyVar)
+    dummyVar = SpecWindow["pa"] #get a dummy variable to create new variables #TODO: there must be a better way to do that
     for key in ["W"]:
         SpecWindow = eval("SpecWindow.assign(" + key + "=dummyVar)")
         SpecWindow[key].values = np.nan * np.ones_like(dummyVar)
-   
-    #create boolean variable 
-    for i_peak in [1,2]:
-        #simply copy variable for clarity
-        peakPow         = PeaksWindow["peakPowClass"].sel(peakIndex=i_peak)
-        #create boolean
-        PeakInZeRange   = np.where(np.logical_and(peakPow>-50,peakPow<-30),1,0)
-        #copy boolean to Dataset
-        PeaksWindow["Peak" + str(i_peak) + "InZeRange"].values = PeakInZeRange
 
-    print("TODO: this lines should be checked with a time period with two peaks")
-    #first select Peak1 as W
-    SpecWindow["W"].values = np.where(PeaksWindow["Peak1InZeRange"]==1,PeaksWindow["peakVelClass"].sel(peakIndex=1),np.nan) 
-    #overwrite W with Peak2 in case it lies within the Ze-range
-    SpecWindow["W"].values = np.where(PeaksWindow["Peak2InZeRange"]==1,PeaksWindow["peakVelClass"].sel(peakIndex=2),SpecWindow["W"].values)
+    if not addManually:
+        ####create boolean variable in PeaksWindow: 1: peaks are in ZeRange, and thus probably cloud droplets 2: peaks are outsided ZeRange and thus might not be caused by cloud droplets
+        for key in ["Peak1InZeRange","Peak2InZeRange"]:
+            PeaksWindow = eval("PeaksWindow.assign(" + key + "=dummyVar)")
+            PeaksWindow[key].values = np.nan * np.ones_like(dummyVar)
+       
+        #create boolean variable 
+        for i_peak in [1,2]:
+            #simply copy variable for clarity
+            peakPow         = PeaksWindow["peakPowClass"].sel(peakIndex=i_peak)
+            #create boolean
+            PeakInZeRange   = np.where(np.logical_and(peakPow>-50,peakPow<-30),1,0)
+            #copy boolean to Dataset
+            PeaksWindow["Peak" + str(i_peak) + "InZeRange"].values = PeakInZeRange
+
+        print("TODO: this lines should be checked with a time period with two peaks")
+        #first select Peak1 as W
+        SpecWindow["W"].values = np.where(PeaksWindow["Peak1InZeRange"]==1,PeaksWindow["peakVelClass"].sel(peakIndex=1),np.nan) 
+        #overwrite W with Peak2 in case it lies within the Ze-range
+        SpecWindow["W"].values = np.where(PeaksWindow["Peak2InZeRange"]==1,PeaksWindow["peakVelClass"].sel(peakIndex=2),SpecWindow["W"].values)
+    else:
+        SpecWindow["W"].values = manualW * np.ones_like(dummyVar)
 
     return SpecWindow
 
