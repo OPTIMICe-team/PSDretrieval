@@ -147,7 +147,7 @@ def plotNumCon(NumConNormV,NumConNormD,axes,vVec,DmaxVec):
     #loop over all x-variables
     for xVar,xLabel,ax,NumConNorm,ylabel in zip([vVec,DmaxVec],["vel [m/s]","Dmax [mm]"],axes,[NumConNormV,NumConNormD],["N [#/m$^3 / (m/s)$]","N [#/m$^3 / (m)$]"]):
         #plot
-        ax.plot(xVar,NumConNorm)
+        ax.semilogy(xVar,NumConNorm)
         #set labels
         ax.set_xlabel(xLabel)
         ax.set_ylabel(ylabel)

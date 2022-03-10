@@ -45,7 +45,7 @@ __ = pl.plotObsSpectra(SpecSingleWshifted,ax)
 #__ = pl.plotSDWRvsDVobs(SpecSingle,axes2)
 
 #apply stricter noise threshold (needed for particleType selection of snowScatt models)
-#SpecWindow = pR.cutLowZe(SpecWindow,zeThreshold=-20)
+SpecWindow = pR.cutLowZe(SpecWindow,zeThreshold=-20)
 #__ = pl.plotSDWRvsDVobs(SpecWindow,axes2)
 
 #get names of all particle types
@@ -76,5 +76,6 @@ velObs,NumConNormV,NumConNormD,DmaxAtObsDVgrid = rU.calculateNumberForEachDVbin(
 #plot the number concentration vs. velocity and Dmax
 fig4,axes3 = plt.subplots(nrows=1,ncols=2)
 axes3 = pl.plotNumCon(NumConNormV,NumConNormD,axes3,velObs,DmaxAtObsDVgrid*1e3)
+plt.tight_layout()
 
 plt.show()

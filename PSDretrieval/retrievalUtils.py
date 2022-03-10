@@ -181,8 +181,10 @@ def calculateNumberForEachDVbin(ZkModel,ZkObs,velModel,velObs,DmaxModel=None,rem
     NumConNormV[np.isinf(NumConNormV)] = np.nan
 
     #normalize with Dmax
-    NumConNormD = NumCon[:-1]/np.diff(DmaxModelAtObsDVgrid[::-1])
+    NumConNormD = NumCon[:-1]/-np.diff(DmaxModelAtObsDVgrid)
+    #NumConNormD[NumCon<1] = np.nan
     NumConNormD[np.isinf(NumConNormD)] = np.nan
 
-    print("##########\n someone should check if the normalization is done correctly!\n##########")
-    return velObs[:-1],NumConNormV,NumConNormD,DmaxModelAtObsDVgrid[:0:-1]
+    print("N_total",np.nansum(NumCon),"1/m^$3$")
+
+    return velObs[:-1],NumConNormV,NumConNormD,DmaxModelAtObsDVgrid[:-1]
