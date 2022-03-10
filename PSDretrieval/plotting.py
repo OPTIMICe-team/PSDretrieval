@@ -131,28 +131,26 @@ def plotSinglePartZe(pType,ax,freq="Ka"):
     return ax
 
     
-def plotNumCon(NumCon,axes,xVars,xLabels):
+def plotNumCon(NumConNormV,NumConNormD,axes,vVec,DmaxVec):
     '''
     plot number concentration against some other values
     Arguments:
         INPUT: (all spectral variables)
-            NumCon [numpy-array, #/m^3]:  number concentration
-            xVars [tuple]:                each element of the tuple contains an array which is used as the x-axis (must have same length as NumCon)
+            NumConNormV [numpy-array, #/m^3]:  number concentration normed by velocity
+            NumConNormD [numpy-array, #/m^3]:  number concentration normed by diameter
+            vVec [numpy-array, m/s]:           velocity array corresponding to above NumConNormV
+            Dmax [numpy-array, m]:             diameter array corresponding to above NumConNormD
         IN - & OUTPUT: 
             axes: axes handles
     '''
 
-    #check if axes, xVars, and xLabels match in size
-    if not (axes.flatten().shape[0]==len(xVars)==len(xLabels)):
-        print("ERROR: 'axes' must have same length as 'xVars' and 'xLabels'")
-
     #loop over all x-variables
-    for xVar,xLabel,ax in zip(xVars,xLabels,axes):
+    for xVar,xLabel,ax,NumConNorm,ylabel in zip([vVec,DmaxVec],["vel [m/s]","Dmax [mm]"],axes,[NumConNormV,NumConNormD],["N [#/m$^3 / (m/s)$]","N [#/m$^3 / (m)$]"]):
         #plot
-        ax.plot(xVar,NumCon)
+        ax.plot(xVar,NumConNorm)
         #set labels
         ax.set_xlabel(xLabel)
-        ax.set_ylabel("N [#/m$^3 / (m/s)$]")
+        ax.set_ylabel(ylabel)
 
     return axes
 

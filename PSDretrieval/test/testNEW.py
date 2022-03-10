@@ -34,7 +34,7 @@ else:
 
 #get vertical wind information from the Spectral data
 #SpecWindow = pR.addVerticalWindToSpecWindow(SpecWindow,PeaksWindow)
-SpecWindow = pR.addVerticalWindToSpecWindow(SpecWindow,None,addManually=True,manualW=0.5)
+SpecWindow = pR.addVerticalWindToSpecWindow(SpecWindow,None,addManually=True,manualW=0.23)
 SpecSingle  = pR.selectSingleTimeHeight(SpecWindow)
 SpecSingleWshifted  = pR.shiftSpectra(SpecSingle)
 
@@ -57,13 +57,13 @@ __ = pl.plotObsSpectra(SpecSingleWshifted,ax)
 
 #find best fitting particle type
 #[bestPartType,orderedListPartType] = rU.findBestFittingPartType(ParticleTypesList,SpecWindow,verbose=True,whichDWRsToUse="DWR_Ka_W")
-#bestPartType = "vonTerzi_column"
+bestPartType = "vonTerzi_column"
 
 #plot sDWR vs DV for best fitting particle type
-#ZxModel, ZkModel, ZwModel, Dmax, K2, velModel = sc.model3fOne(bestPartType)
-#DWRxk = ZxModel - ZkModel; DWRkw = ZkModel - ZwModel
-#DWRxkModelUnAmb,ax = sc.getUnambigousDWRdmax(Dmax,DWRxk)
-#DWRkwModelUnAmb,ax = sc.getUnambigousDWRdmax(Dmax,DWRkw)
+ZxModel, ZkModel, ZwModel, Dmax, K2, velModel = sc.model3fOne(bestPartType)
+DWRxk = ZxModel - ZkModel; DWRkw = ZkModel - ZwModel
+DWRxkModelUnAmb,ax = sc.getUnambigousDWRdmax(Dmax,DWRxk)
+DWRkwModelUnAmb,ax = sc.getUnambigousDWRdmax(Dmax,DWRkw)
 #axes2 = pl.plotSDWRvsDVmodel(velModel,DWRxkModelUnAmb,DWRkwModelUnAmb,axes2,bestPartType)
 #axes2[0].legend()
 
@@ -71,10 +71,10 @@ __ = pl.plotObsSpectra(SpecSingleWshifted,ax)
 #fig3,ax = plt.subplots(nrows=1,ncols=1)
 #ax = pl.plotSinglePartZe(bestPartType,ax,freq="Ka")
 
-##no, finally calculate the size distribution
-#velObs,NumConNorm,DmaxAtObsDVgrid = rU.calculateNumberForEachDVbin(ZkModel,SpecSingleWshifted.KaSpecH.values,velModel,-SpecSingleWshifted.KaSpecH.doppler.values,DmaxModel=Dmax)
+##now, finally calculate the size distribution
+velObs,NumConNormV,NumConNormD,DmaxAtObsDVgrid = rU.calculateNumberForEachDVbin(ZkModel,SpecSingleWshifted.KaSpecH.values,velModel,-SpecSingleWshifted.KaSpecH.doppler.values,DmaxModel=Dmax)
 #plot the number concentration vs. velocity and Dmax
-#fig4,axes3 = plt.subplots(nrows=1,ncols=2)
-#axes3 = pl.plotNumCon(NumConNorm,axes3,[velObs,DmaxAtObsDVgrid*1e3],["vel [m/s]","Dmax [mm]"])
+fig4,axes3 = plt.subplots(nrows=1,ncols=2)
+axes3 = pl.plotNumCon(NumConNormV,NumConNormD,axes3,velObs,DmaxAtObsDVgrid*1e3)
 
 plt.show()

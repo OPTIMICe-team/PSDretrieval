@@ -175,8 +175,14 @@ def calculateNumberForEachDVbin(ZkModel,ZkObs,velModel,velObs,DmaxModel=None,rem
 
     #calculate the number of particles in each DV bin
     NumCon      = ZkObsLin/ZkModelLinAtObsDVgrid
-    #normalize with velocity
-    delV        = (velObs[0]-velObs[1]) #I am assuming a regular DV grid in the observed spectrum here
-    NumConNorm  = NumCon/delV
 
-    return velObs,NumConNorm,DmaxModelAtObsDVgrid
+    #normalize with velocity
+    NumConNormV = NumCon[:-1]/-np.diff(velObs)
+    NumConNormV[np.isinf(NumConNormV)] = np.nan
+
+    #normalize with Dmax
+    NumConNormD = NumCon[:-1]/np.diff(DmaxModelAtObsDVgrid[::-1])
+    NumConNormD[np.isinf(NumConNormD)] = np.nan
+
+    print("##########\n someone should check if the normalization is done correctly!\n##########")
+    return velObs[:-1],NumConNormV,NumConNormD,DmaxModelAtObsDVgrid[:0:-1]
