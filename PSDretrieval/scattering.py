@@ -42,14 +42,15 @@ def model3fOne(particleName,Dmax=np.linspace(0.3e-3, 20.0e-3, 2000),lindB="dB",K
     bck = pd.DataFrame(index=Dmax, columns=frequencies)
     for fi, freq in enumerate(frequencies):
         wl = snowScatt._compute._c/freq
-        if Kfreq is None:
-            eps = snowScatt.refractiveIndex.water.eps(temperature, freq, 'Turner')
-        elif Kfreq=="X":
-            eps = snowScatt.refractiveIndex.water.eps(temperature, frequencies[0], 'Turner')
-        elif Kfreq=="Ka":
-            eps = snowScatt.refractiveIndex.water.eps(temperature, frequencies[1], 'Turner')
-        elif Kfreq=="W":
-            eps = snowScatt.refractiveIndex.water.eps(temperature, frequencies[2], 'Turner')
+        #if Kfreq is None:
+        #    eps = snowScatt.refractiveIndex.water.eps(temperature, freq, 'Turner')
+        #elif Kfreq=="X":
+        #    eps = snowScatt.refractiveIndex.water.eps(temperature, frequencies[0], 'Turner')
+        #elif Kfreq=="Ka":
+        #    eps = snowScatt.refractiveIndex.water.eps(temperature, frequencies[1], 'Turner')
+        #elif Kfreq=="W":
+        #    eps = snowScatt.refractiveIndex.water.eps(temperature, frequencies[2], 'Turner')
+        eps = snowScatt.refractiveIndex.water.eps(temperature, frequencies[0], 'Turner') #set fixed K2, because that is corrected for with the cloud top calibration in Dias Neto et al (2019) (??)
         K2 = snowScatt.refractiveIndex.utilities.K2(eps)
         #get backscatter and velocity from database
         ssCbck, ssvel = snowScatt.backscatVel(diameters=Dmax,
