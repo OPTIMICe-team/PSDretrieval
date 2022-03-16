@@ -9,7 +9,7 @@ import snowScatt
 from IPython.terminal.debugger import set_trace
 
 
-loadDefault = False
+loadDefault = True
 
 ###define time
 if loadDefault:
@@ -17,11 +17,13 @@ if loadDefault:
     #unrimed 
     time    = "06:18:04"
     hRange  = 1600
+    manualW = 0.23
 else:
     date    = "20181124"
     #rimed
     time    = "07:01:00"
     hRange  = 3000
+    manualW = 0.0
 
 
 ###load Data
@@ -36,7 +38,7 @@ else:
 
 #get vertical wind information from the Spectral data
 #SpecWindow = pR.addVerticalWindToSpecWindow(SpecWindow,PeaksWindow)
-SpecWindow = pR.addVerticalWindToSpecWindow(SpecWindow,None,addManually=True,manualW=0.23)
+SpecWindow = pR.addVerticalWindToSpecWindow(SpecWindow,None,addManually=True,manualW=manualW)
 SpecSingle  = pR.selectSingleTimeHeight(SpecWindow)
 SpecSingleWshifted  = pR.shiftSpectra(SpecSingle)
 

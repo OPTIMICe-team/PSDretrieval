@@ -148,6 +148,7 @@ def loadTripexPol(dataPath="/data/obs/campaigns/tripex-pol/processed/",date="201
     dataLV0List = glob.glob(dataPath + "tripex_pol_level_0/" +tStep.strftime('%Y')+'/'+tStep.strftime('%m')+'/'+tStep.strftime('%d')+'/'
                                     +tStep.strftime('%Y')+    tStep.strftime('%m')+    tStep.strftime('%d')+'_*' 
                             '_tripex_pol_3fr_spec_filtered_regridded.nc')
+    print("load files: "  + dataPath + "tripex_pol_level_0/" +tStep.strftime('%Y')+'/'+tStep.strftime('%m')+'/'+tStep.strftime('%d')+'/'+tStep.strftime('%Y')+    tStep.strftime('%m')+    tStep.strftime('%d')+ '_*''_tripex_pol_3fr_spec_filtered_regridded.nc')
     #load data
     dataLV0 = xr.open_mfdataset(dataLV0List)
     #change time attribute
@@ -220,7 +221,6 @@ def loadSpectra(loadSample=True,dataPath=None,createSample=False,date="20190113"
             load a spectra file
             '''
             if "tripex-pol" in dataPath:
-                print("load file:"  + dataPath)
                 xrSpec = loadTripexPol(dataPath=dataPath,date=date,time=time,tRange=tRange,hcenter=hcenter,hRange=hRange,verbose=verbose)
                 if createSample:
                     xrSpec.to_netcdf(sample_path)
