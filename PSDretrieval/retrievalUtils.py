@@ -134,10 +134,16 @@ def removeDropletsFromSpectra(ZkObs,velObs,Nsmooth=10,vSpecLims=[0.0,1.0]):
     if len(reasonableMins)>1:
         print("Error: more than one minimum (separating the cloud droplet peak and the ice peak) found in interval []" 
           + str(vLowSpecMin) +"," + str(vHighSpecMin) + "]; exit here; you may change the vSpecLims")
+    elif len(reasonableMins)==0: #no superdroplet peak found
 
-    # 4. mask values with DV lower than minimum
-    velObsWithoutDroplets = velObs[velObs>reasonableMins].copy()
-    ZkObsWithoutDroplets  = ZkObs[velObs>reasonableMins].copy()
+        velObsWithoutDroplets = velObs.copy()
+        ZkObsWithoutDroplets  = ZkObs.copy()
+
+    else: #same as len()=1 -> here we can get rid of the superdroplet peak
+
+        # 4. mask values with DV lower than minimum
+        velObsWithoutDroplets = velObs[velObs>reasonableMins].copy()
+        ZkObsWithoutDroplets  = ZkObs[velObs>reasonableMins].copy()
 
     return ZkObsWithoutDroplets,velObsWithoutDroplets
 
@@ -185,6 +191,6 @@ def calculateNumberForEachDVbin(ZkModel,ZkObs,velModel,velObs,DmaxModel=None,rem
     #NumConNormD[NumCon<1] = np.nan
     NumConNormD[np.isinf(NumConNormD)] = np.nan
 
-    print("N_total",np.nansum(NumCon),"1/m^$3$")
+    print("N_total",np.nansum(NumCon),"1/m^3")
 
     return velObs[:-1],NumConNormV,NumConNormD,DmaxModelAtObsDVgrid[:-1]

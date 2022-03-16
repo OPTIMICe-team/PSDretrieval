@@ -9,17 +9,19 @@ import snowScatt
 from IPython.terminal.debugger import set_trace
 
 
-loadDefault = True
+loadDefault = False
+
 ###define time
-date    = "20190113"
 if loadDefault:
+    date    = "20190113"
     #unrimed 
     time    = "06:18:04"
     hRange  = 1600
 else:
+    date    = "20181124"
     #rimed
-    time    = "06:57:00"
-    hRange  = 2000
+    time    = "07:01:00"
+    hRange  = 3000
 
 
 ###load Data
@@ -57,7 +59,7 @@ SpecWindow = pR.cutLowZe(SpecWindow,zeThreshold=-20)
 
 #find best fitting particle type
 #[bestPartType,orderedListPartType] = rU.findBestFittingPartType(ParticleTypesList,SpecWindow,verbose=True,whichDWRsToUse="DWR_Ka_W")
-bestPartType = "vonTerzi_column"
+bestPartType = "vonTerzi_needle"
 
 #plot sDWR vs DV for best fitting particle type
 ZxModel, ZkModel, ZwModel, Dmax, K2, velModel = sc.model3fOne(bestPartType)
