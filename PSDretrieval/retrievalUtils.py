@@ -8,6 +8,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PSDretrieval import scattering as sc
 from IPython.terminal.debugger import set_trace
+import snowScatt
+from snowScatt.instrumentSimulator.radarMoments import Ze
+
 
 def findBestFittingPartType(selectedParticleTypes, xrSpec,verbose=False,whichDWRsToUse="both"):
     '''
@@ -161,7 +164,7 @@ def calculateNumberForEachDVbin(ZkModel,ZkObs,velModel,velObs,DmaxModel=None,rem
             removeDroplets[boolean]:    remove the part of the spectra with the supercooled droplets
         OUTPUT: 
             velObs [np.array, m/s]:     part of DV array where number concentration can be retrieved
-            NumConNorm [np.array, #/m^3/(m/s)]: Normed number concentration
+            NumConNorm [np.array, #/m^3/(m/s)]: Normalized number concentration
             DmaxModelAtObsDVgrid [np.array, m]: maximum dimension corresponding to velObs
     '''
 
@@ -191,6 +194,55 @@ def calculateNumberForEachDVbin(ZkModel,ZkObs,velModel,velObs,DmaxModel=None,rem
     #NumConNormD[NumCon<1] = np.nan
     NumConNormD[np.isinf(NumConNormD)] = np.nan
 
-    print("N_total",np.nansum(NumCon),"1/m^3")
-
     return velObs[:-1],NumConNormV,NumConNormD,DmaxModelAtObsDVgrid[:-1]
+
+
+def integrateSpectrum(spectrum):
+    '''
+    Integrate the Doppler Spectrum to get bulk reflectivity
+        INPUT:
+            Spectrum [np.array, dB]:    spectral power array
+        OUTPUT: 
+            Ze [float,dB]:               integrated reflectivity
+    '''
+  
+    #convert to linear
+    spectrumLin = Bd(spectrum.values)
+    #sum up
+    ZeLin = np.nansum(spectrumLin)
+    #convert to dBz
+    Ze  = dB(ZeLin)
+
+    return Ze
+
+def crossCheckIntegratedProp(Dmax,NumConNormD,spectrumX,PartType):
+    '''
+    Display some cross checks of integrated properties
+        INPUT:
+            NumConNorm [np.array, #/m^3/(m/s)]:     Normalized number concentration
+            Spectrum [np.array, dB]:                spectral power array
+            PartType:                               selected particle type 
+    '''
+   
+    #remove nans from Dmax and N(Dmax) 
+    DmaxClean           = Dmax[~np.isnan(NumConNormD)]
+    NumConNormDclean    = NumConNormD[~np.isnan(NumConNormD)]
+    #somehow they are also in the wrong order -> revert
+    DmaxClean           = DmaxClean[::-1]
+    NumConNormDclean    = NumConNormDclean[::-1]
+
+    ###calculate integrated variables in physical space
+    ##from retrieval
+    Nretrieval = np.nansum(NumConNormDclean*np.gradient(DmaxClean))
+    mass_array, __,__ = snowScatt.snowMassVelocityArea(DmaxClean, PartType)
+    IWCretrieval = np.nansum(NumConNormDclean*np.gradient(DmaxClean)*mass_array)
+    print("Nretrieval",Nretrieval,"1/m^3","IWCretrieval",IWCretrieval*1e3,"g/m^3")
+
+    ##calculate the observed ZeX by integrating the spectrum
+    ZeXobs = integrateSpectrum(spectrumX)
+    ##estimate ZeX from the retrieved spectra with snowscatt
+    wl = snowScatt._compute._c/13.6e9 #X-Band
+    ZxFromRetrievedPSD = Ze(DmaxClean, NumConNormDclean, wl, PartType, temperature=273.15) #actual temperature is not considered here
+    print("ZeXobs: ",ZeXobs,"ZxFromRetrievedPSD",ZxFromRetrievedPSD)
+
+    return None

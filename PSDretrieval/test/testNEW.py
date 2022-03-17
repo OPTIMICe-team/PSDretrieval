@@ -9,7 +9,7 @@ import snowScatt
 from IPython.terminal.debugger import set_trace
 
 
-loadDefault = True
+loadDefault = False
 
 ###define time
 if loadDefault:
@@ -19,10 +19,10 @@ if loadDefault:
     hRange  = 1600
     manualW = 0.23
 else:
-    date    = "20181124"
+    date    = "20190113"
     #rimed
-    time    = "07:01:00"
-    hRange  = 3000
+    time    = "07:00:00"
+    hRange  = 2000
     manualW = 0.0
 
 
@@ -37,8 +37,8 @@ else:
     PeaksWindow  = pR.loadPeaks(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/spectralPeaks/",createSample=True,date=date,time=time,tRange=1,hRange=180,hcenter=hRange)
 
 #get vertical wind information from the Spectral data
-SpecWindow = pR.addVerticalWindToSpecWindow(SpecWindow,PeaksWindow)
-#SpecWindow = pR.addVerticalWindToSpecWindow(SpecWindow,None,addManually=True,manualW=manualW)
+#SpecWindow = pR.addVerticalWindToSpecWindow(SpecWindow,PeaksWindow)
+SpecWindow = pR.addVerticalWindToSpecWindow(SpecWindow,None,addManually=True,manualW=manualW)
 SpecSingle  = pR.selectSingleTimeHeight(SpecWindow)
 SpecSingleWshifted  = pR.shiftSpectra(SpecSingle)
 
@@ -80,4 +80,7 @@ fig4,axes3 = plt.subplots(nrows=1,ncols=2)
 axes3 = pl.plotNumCon(NumConNormV,NumConNormD,axes3,velObs,DmaxAtObsDVgrid*1e3)
 plt.tight_layout()
 
-plt.show()
+#do some cross checks
+rU.crossCheckIntegratedProp(DmaxAtObsDVgrid,NumConNormD,SpecSingle.XSpecH,bestPartType)
+
+#plt.show()
