@@ -168,7 +168,8 @@ def loadTripexPol(dataPath="/data/obs/campaigns/tripex-pol/processed/",date="201
     xrSpec       = addOffsets(xrSpec,dataLV2,verbose=verbose)
     #add pressure to the file (needed for density correction of fall speed)
     xrSpec["pa"] = dataLV2["pa"] 
-    
+    xrSpec["ta"] = dataLV2["ta"] + 273.15 #temperature [K]
+
     return xrSpec
 
 def loadSpectra(loadSample=True,dataPath=None,createSample=False,date="20190113",time="06:18:04",tRange=1,hRange=180,hcenter=1600,verbose=False):

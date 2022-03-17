@@ -7,6 +7,7 @@ Interface to snowScatt
 import numpy as np
 import pandas as pd
 import snowScatt
+from IPython.terminal.debugger import set_trace
 
 def dB(x): #conversion: linear [mm**6/m**3] to logarithmic [dB]
     return 10.0*np.log10(x)
@@ -19,7 +20,7 @@ def singlePsd(Ds, i): #monodisperse PSD
     psd[i]=1
     return psd
 
-def model3fOne(particleName,Dmax=np.linspace(0.3e-3, 20.0e-3, 2000),lindB="dB",Kfreq=None):
+def model3fOne(particleName,Dmax=np.linspace(0.3e-3, 20.0e-3, 2000),lindB="dB",Kfreq=None,temperature=273.15):
     '''
     get single-particle reflectivity, velocity and dielectric factor
 
@@ -29,13 +30,13 @@ def model3fOne(particleName,Dmax=np.linspace(0.3e-3, 20.0e-3, 2000),lindB="dB",K
         Dmax: [m] array of maximum dimensions
         lindB: ["lin","dB"] return Ze either in linear units or in dB
         Kfreq: frequency used to calculate dielectric factor K [None,X,Ka,W]; if None, then the consistent one is used
+        temperature: [K] temperature
     RETURNS:
         reflectivity in X-,Ka- and W-Band
         ZxOne, ZkOne, ZwOne, Dmax, K2, vel #ssvel is not wavelength-dependent
     '''
 
     frequencies =  np.array([9.4e9, 35.6e9, 94.0e9])
-    temperature = 270.0
 
     particle = particleName
 

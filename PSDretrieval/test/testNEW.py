@@ -9,21 +9,24 @@ import snowScatt
 from IPython.terminal.debugger import set_trace
 
 
-loadDefault = False
+loadDefault = True
 
 ###define time
 if loadDefault:
     date    = "20190113"
-    #unrimed 
     time    = "06:18:04"
-    hRange  = 1600
+    hcenter = 1600
     manualW = 0.23
 else:
+    #date    = "20190113"
+    #time    = "07:00:00"
+    #hRange  = 2000
+    #manualW = 0.0
+
     date    = "20190113"
-    #rimed
-    time    = "07:00:00"
-    hRange  = 2000
-    manualW = 0.0
+    time    = "06:18:04"
+    hcenter = 1600
+    manualW = 0.23
 
 
 ###load Data
@@ -32,9 +35,9 @@ if loadDefault:
     SpecWindow  = pR.loadSpectra()
     PeaksWindow  = pR.loadPeaks()
 else:
-    SpecWindow  = pR.loadSpectra(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/processed/",createSample=True,date=date,time=time,tRange=1,hRange=180,hcenter=hRange)
+    SpecWindow  = pR.loadSpectra(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/processed/",createSample=True,date=date,time=time,tRange=1,hRange=180,hcenter=hcenter)
 
-    PeaksWindow  = pR.loadPeaks(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/spectralPeaks/",createSample=True,date=date,time=time,tRange=1,hRange=180,hcenter=hRange)
+    PeaksWindow  = pR.loadPeaks(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/spectralPeaks/",createSample=True,date=date,time=time,tRange=1,hRange=180,hcenter=hcenter)
 
 #get vertical wind information from the Spectral data
 #SpecWindow = pR.addVerticalWindToSpecWindow(SpecWindow,PeaksWindow)
@@ -64,7 +67,7 @@ SpecWindow = pR.cutLowZe(SpecWindow,zeThreshold=-20)
 bestPartType = "vonTerzi_column"
 
 #plot sDWR vs DV for best fitting particle type
-ZxModel, ZkModel, ZwModel, Dmax, K2, velModel = sc.model3fOne(bestPartType)
+ZxModel, ZkModel, ZwModel, Dmax, K2, velModel = sc.model3fOne(bestPartType,temperature=float(SpecSingle["ta"].values))
 DWRxkModel = ZxModel - ZkModel; DWRkwModel = ZkModel - ZwModel
 axes2 = pl.plotSDWRvsDVmodel(velModel,DWRxkModel,DWRkwModel,axes2,bestPartType)
 axes2[0].legend()
@@ -83,4 +86,4 @@ plt.tight_layout()
 #do some cross checks
 rU.crossCheckIntegratedProp(DmaxAtObsDVgrid,NumConNormD,SpecSingle.XSpecH,bestPartType)
 
-#plt.show()
+plt.show()

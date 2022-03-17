@@ -233,16 +233,21 @@ def crossCheckIntegratedProp(Dmax,NumConNormD,spectrumX,PartType):
 
     ###calculate integrated variables in physical space
     ##from retrieval
-    Nretrieval = np.nansum(NumConNormDclean*np.gradient(DmaxClean))
-    mass_array, __,__ = snowScatt.snowMassVelocityArea(DmaxClean, PartType)
-    IWCretrieval = np.nansum(NumConNormDclean*np.gradient(DmaxClean)*mass_array)
-    print("Nretrieval",Nretrieval,"1/m^3","IWCretrieval",IWCretrieval*1e3,"g/m^3")
+    Nretrieval          = np.nansum(NumConNormDclean*np.gradient(DmaxClean)) #total number concentration [#/m^ 3]
+    massArray, __,__    = snowScatt.snowMassVelocityArea(DmaxClean, PartType) #particle masses at different sizes [m]
+    massDistribution    = NumConNormDclean*massArray #mass distribution [kg/m^3/m]
+    IWCretrieval        = np.nansum(massDistribution*np.gradient(DmaxClean)) #[kg/m^ 3] integrate to get IWC 
+    massDistCDF         = np.cumsum(massDistribution*np.gradient(DmaxClean))/IWCretrieval #cumulative distribution function of mass [kg/m^3]
+    MassMedianDiam      = float(DmaxClean[np.argwhere(massDistCDF>0.5)[0]])
+
+    print("Nretrieval",Nretrieval,"1/m^3","IWCretrieval",IWCretrieval*1e3,"g/m^3","MassMedianDiam",MassMedianDiam*1e3,"mm")
 
     ##calculate the observed ZeX by integrating the spectrum
     ZeXobs = integrateSpectrum(spectrumX)
     ##estimate ZeX from the retrieved spectra with snowscatt
     wl = snowScatt._compute._c/13.6e9 #X-Band
     ZxFromRetrievedPSD = Ze(DmaxClean, NumConNormDclean, wl, PartType, temperature=273.15) #actual temperature is not considered here
+
     print("ZeXobs: ",ZeXobs,"ZxFromRetrievedPSD",ZxFromRetrievedPSD)
 
     return None
