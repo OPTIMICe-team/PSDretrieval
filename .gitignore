@@ -130,3 +130,6 @@ dmypy.json
 
 #temporary files
 *.swp
+
+#additional sample files
+PSDretrieval/sample_data/*
