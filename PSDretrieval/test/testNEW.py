@@ -7,7 +7,7 @@ import numpy as np
 from snowScatt import snowMassVelocityArea
 import snowScatt
 from IPython.terminal.debugger import set_trace
-
+import pandas as pd
 
 loadDefault = True
 
@@ -44,6 +44,10 @@ else:
 SpecWindow = pR.addVerticalWindToSpecWindow(SpecWindow,None,addManually=True,manualW=manualW)
 SpecSingle  = pR.selectSingleTimeHeight(SpecWindow)
 SpecSingleWshifted  = pR.shiftSpectra(SpecSingle)
+#time2plot = pd.to_datetime('{date} {time}'.format(date=date,time=time))
+SpecOneTime = pR.loadSpectra(date=date,time=time,tRange=0,dataPath="/data/obs/campaigns/tripex-pol/processed/",loadAllHeights=True,loadSample=False)
+pl.plotSpectraObsAllHeights(SpecOneTime)
+plt.show()
 
 #plot Spectra and sDWR
 fig,ax = plt.subplots(nrows=1,ncols=1)
