@@ -35,9 +35,9 @@ if loadDefault:
     SpecWindow  = pR.loadSpectra()
     PeaksWindow  = pR.loadPeaks()
 else:
-    SpecWindow  = pR.loadSpectra(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/processed/",createSample=True,date=date,time=time,tRange=1,hRange=180,hcenter=hcenter)
+    SpecWindow  = pR.loadSpectra(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/processed/",createSample=False,date=date,time=time,tRange=1,hRange=180,hcenter=hcenter)
 
-    PeaksWindow  = pR.loadPeaks(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/spectralPeaks/",createSample=True,date=date,time=time,tRange=1,hRange=180,hcenter=hcenter)
+    PeaksWindow  = pR.loadPeaks(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/spectralPeaks/",createSample=False,date=date,time=time,tRange=1,hRange=180,hcenter=hcenter)
 
 #get vertical wind information from the Spectral data
 #SpecWindow = pR.addVerticalWindToSpecWindow(SpecWindow,PeaksWindow)
