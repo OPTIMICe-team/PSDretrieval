@@ -7,9 +7,9 @@ import numpy as np
 from snowScatt import snowMassVelocityArea
 import snowScatt
 from IPython.terminal.debugger import set_trace
+import pandas as pd
 
-
-loadDefault = False
+loadDefault = True
 
 ###define time
 if loadDefault:
@@ -35,15 +35,19 @@ if loadDefault:
     SpecWindow  = pR.loadSpectra()
     PeaksWindow  = pR.loadPeaks()
 else:
-    SpecWindow  = pR.loadSpectra(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/processed/",createSample=False,date=date,time=time,tRange=1,hRange=180,hcenter=hcenter)
+    SpecWindow  = pR.loadSpectra(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/processed/",createSample=True,date=date,time=time,tRange=1,hRange=180,hcenter=hcenter)
 
-    PeaksWindow  = pR.loadPeaks(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/spectralPeaks/",createSample=False,date=date,time=time,tRange=1,hRange=180,hcenter=hcenter)
+    PeaksWindow  = pR.loadPeaks(loadSample=False,dataPath="/data/obs/campaigns/tripex-pol/spectralPeaks/",createSample=True,date=date,time=time,tRange=1,hRange=180,hcenter=hcenter)
 
 #get vertical wind information from the Spectral data
 #SpecWindow = pR.addVerticalWindToSpecWindow(SpecWindow,PeaksWindow)
 SpecWindow = pR.addVerticalWindToSpecWindow(SpecWindow,None,addManually=True,manualW=manualW)
 SpecSingle  = pR.selectSingleTimeHeight(SpecWindow)
 SpecSingleWshifted  = pR.shiftSpectra(SpecSingle)
+#time2plot = pd.to_datetime('{date} {time}'.format(date=date,time=time))
+SpecOneTime = pR.loadSpectra(date=date,time=time,tRange=0,dataPath="/data/obs/campaigns/tripex-pol/processed/",loadAllHeights=True,loadSample=False)
+pl.plotSpectraObsAllHeights(SpecOneTime)
+plt.show()
 
 #plot Spectra and sDWR
 fig,ax = plt.subplots(nrows=1,ncols=1)

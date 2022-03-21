@@ -172,7 +172,56 @@ def loadTripexPol(dataPath="/data/obs/campaigns/tripex-pol/processed/",date="201
 
     return xrSpec
 
-def loadSpectra(loadSample=True,dataPath=None,createSample=False,date="20190113",time="06:18:04",tRange=1,hRange=180,hcenter=1600,verbose=False):
+def loadTripexPolAllHeights(dataPath="/data/obs/campaigns/tripex-pol/processed/",date="20190113",time="06:18:04",tRange=0,verbose="False"):
+    '''
+    load spectra (+ regrid, offset-correction, ...) from level 0 data of the Tripex-pol dataset 
+    Arguments:
+        optional INPUT:    
+            dataPath:  path to the level 0 and level 2 data
+            date [yyyymmdd]:    date
+            time [HH:MM:SS]:    time
+            tRange [Delta min]: time range
+            hRange [Delta m]:   height range
+            hcenter [m]:        center of height range
+            verbose:            display some output with print()-commands
+        OUTPUT:
+            xrSpec: spectra which has been read in, regridded, corrected for offsets + information on pressure and noise
+    '''
+  
+    #convert strings to pandas time format 
+    tStep = getPandasTime(date=date,time=time)
+
+    ####load LEVEL1 data
+    #get list of files
+    dataLV0List = glob.glob(dataPath + "tripex_pol_level_0/" +tStep.strftime('%Y')+'/'+tStep.strftime('%m')+'/'+tStep.strftime('%d')+'/'
+                                    +tStep.strftime('%Y')+    tStep.strftime('%m')+    tStep.strftime('%d')+'_*' 
+                            '_tripex_pol_3fr_spec_filtered_regridded.nc')
+    print("load files: "  + dataPath + "tripex_pol_level_0/" +tStep.strftime('%Y')+'/'+tStep.strftime('%m')+'/'+tStep.strftime('%d')+'/'+tStep.strftime('%Y')+    tStep.strftime('%m')+    tStep.strftime('%d')+ '_*''_tripex_pol_3fr_spec_filtered_regridded.nc')
+    #load data
+    dataLV0 = xr.open_mfdataset(dataLV0List)
+    #change time attribute
+    dataLV0.time.attrs['units']='seconds since 1970-01-01 00:00:00 UTC'
+    #decode according to cf-conventions
+    dataLV0 = xr.decode_cf(dataLV0) 
+    #select time step
+    xrSpec = dataLV0.sel(time=slice(tStep-pd.Timedelta(minutes=tRange/2.),tStep+pd.Timedelta(minutes=tRange/2.)))#,range=slice(hcenter-hRange/2,hcenter+hRange/2))
+    xrSpec = regridSpec(xrSpec,windowWidth=10,verbose=verbose)
+    print(xrSpec)
+    ####load LEVEL2 data
+    dataLV2 = xr.open_mfdataset(dataPath + "tripex_pol_level_2/" + date + '_tripex_pol_3fr_L2_mom.nc')
+    #select time step
+    dataLV2 = dataLV2.sel(time=slice(tStep-pd.Timedelta(minutes=tRange/2.),tStep+pd.Timedelta(minutes=tRange/2.)))#,range=slice(hcenter-hRange/2,hcenter+hRange/2))
+        
+    #get offsets from LV2 data
+    xrSpec       = addOffsets(xrSpec,dataLV2,verbose=verbose)
+    #add pressure to the file (needed for density correction of fall speed)
+    xrSpec["pa"] = dataLV2["pa"] 
+    xrSpec["ta"] = dataLV2["ta"] + 273.15 #temperature [K]
+
+    return xrSpec
+
+
+def loadSpectra(loadSample=True,dataPath=None,createSample=False,date="20190113",time="06:18:04",tRange=1,hRange=180,hcenter=1600,verbose=False,loadAllHeights=False):
     '''
     load Doppler spectra data from 1) any dataset (requires some additional implementions-  maybe in a git-branch) 2) the Tripex-pol dataset  3) the sample_data folder
     Arguments:
@@ -196,7 +245,7 @@ def loadSpectra(loadSample=True,dataPath=None,createSample=False,date="20190113"
     this_dir = path.dirname(path.realpath(__file__))
     #define sample path (needed for both saving and reading a sample)
     sample_path = this_dir + "/sample_data/" + date + "_" + time[0:2] + time[3:5] + time[6:8] + "_tR" + str(tRange) + "min_h" + str(hcenter) + "m_hR" + str(hRange) + "m.nc"
-
+    print('loadAllHeights',loadAllHeights)
     if loadSample:
         if createSample:
             print("ERROR: cant create sample when loading sample: set either loadSample or createSample to False")
@@ -222,7 +271,11 @@ def loadSpectra(loadSample=True,dataPath=None,createSample=False,date="20190113"
             load a spectra file
             '''
             if "tripex-pol" in dataPath:
-                xrSpec = loadTripexPol(dataPath=dataPath,date=date,time=time,tRange=tRange,hcenter=hcenter,hRange=hRange,verbose=verbose)
+                if loadAllHeights==True:
+                    print('in if')
+                    xrSpec = loadTripexPolAllHeights(dataPath=dataPath,date=date,time=time,tRange=tRange,verbose=verbose)
+                else:               
+                    xrSpec = loadTripexPol(dataPath=dataPath,date=date,time=time,tRange=tRange,hcenter=hcenter,hRange=hRange,verbose=verbose)
                 if createSample:
                     xrSpec.to_netcdf(sample_path)
             else:

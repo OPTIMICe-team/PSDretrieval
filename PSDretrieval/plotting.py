@@ -153,4 +153,42 @@ def plotNumCon(NumConNormV,NumConNormD,axes,vVec,DmaxVec):
         ax.set_ylabel(ylabel)
 
     return axes
-
+def plotSpectraObsAllHeights(data,xlim=[-5,1],ylim=[0,8000]):
+    import matplotlib.pyplot as plt
+    '''
+    plot spectrogramms (for all heights)
+    Arguments:
+        INPUT: 
+            xrSpec: dataarray which contains height,doppler series of spectrum (already one time step has to be selected)
+            xlim: Doppler velocity limits
+            ylim= range limits
+        OUTPUT: 
+            ax: returned are the axes with the plot
+            
+    '''        
+    #- plot the data
+    fig,axes = plt.subplots(figsize=(15,5),ncols=4,sharey=True)
+    radData = {'XSpecH':{'data':data['XSpecH'],'title':'X','axis':axes[0],'lim':(-40,10)},
+               'KaSpecH':{'data':data['KaSpecH'],'title':'Ka','axis':axes[1],'lim':(-40,10)},
+               'WSpecH':{'data':data['WSpecH'],'title':'W','axis':axes[2],'lim':(-40,10)},
+               'KaW':{'data':data['KaSpecH']-data['WSpecH'],'title':'DWR-KaW','axis':axes[3],'lim':(-5,10)}}
+    for rad in radData.keys():
+        
+        plot = radData[rad]['axis'].pcolormesh(data.doppler.values,
+                              data.range.values,
+                              radData[rad]['data'].values[0],
+                              vmin=radData[rad]['lim'][0],vmax=radData[rad]['lim'][1],
+                              cmap='nipy_spectral')
+        if rad == 'KaW':
+            fig.colorbar(plot,ax=radData[rad]['axis'],label='[dB]')
+        if rad == 'XSpecH':
+            radData[rad]['axis'].set_ylabel(r'range [m]')
+        
+        radData[rad]['axis'].grid()
+        radData[rad]['axis'].set_title(radData[rad]['title'])
+        radData[rad]['axis'].set_xlabel(r'Doppler velocity [ms$^{-1}]$')
+        radData[rad]['axis'].set_xlim(xlim)
+        radData[rad]['axis'].set_ylim(ylim)
+    plt.tight_layout()
+    #plt.show()
+    #return fig
