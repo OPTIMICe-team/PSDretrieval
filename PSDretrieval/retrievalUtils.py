@@ -10,6 +10,7 @@ from PSDretrieval import scattering as sc
 from IPython.terminal.debugger import set_trace
 import snowScatt
 from snowScatt.instrumentSimulator.radarMoments import Ze
+import sys
 
 
 def findBestFittingPartType(selectedParticleTypes, xrSpec,verbose=False,whichDWRsToUse="both"):
@@ -164,7 +165,8 @@ def calculateNumberForEachDVbin(ZkModel,ZkObs,velModel,velObs,DmaxModel=None,rem
             removeDroplets[boolean]:    remove the part of the spectra with the supercooled droplets
         OUTPUT: 
             velObs [np.array, m/s]:     part of DV array where number concentration can be retrieved
-            NumConNorm [np.array, #/m^3/(m/s)]: Normalized number concentration
+            NumConNormV [np.array, #/m^3/(m/s)]: Number concentration normalized by Doppler velocity 
+            NumConNormD [np.array, #/m^3/(m)]: Number concentration normalized by diameter 
             DmaxModelAtObsDVgrid [np.array, m]: maximum dimension corresponding to velObs
     '''
 
@@ -215,20 +217,31 @@ def integrateSpectrum(spectrum):
 
     return Ze
 
-def crossCheckIntegratedProp(Dmax,NumConNormD,spectrumX,PartType):
+def crossCheckIntegratedProp(Dmax,NumConNormD,spectrumX,PartType,velObs=None,vDivide=None):
     '''
     Display some cross checks of integrated properties
         INPUT:
-            NumConNorm [np.array, #/m^3/(m/s)]:     Normalized number concentration
+            Dmax
+            DmaxModel[np.array, m]:                 Array of sizes corresponding to NumConNormD
+            NumConNormD [np.array, #/m^3/(m)]:      Number concentration normalized by diameter 
             Spectrum [np.array, dB]:                spectral power array
             PartType:                               selected particle type 
+          optional:
+            velObs [np.array, m/s]:     part of DV array where number concentration can be retrieved
+            vDivide [float]:                        separate integrated values by 
     '''
+
+    if (not (vDivide is None)) and (velObs is None):
+            print("ERROR: to use checks separated by regions of DV (vDivide!=None) velObs must be given")
+            sys.exit(1)
    
     #remove nans from Dmax and N(Dmax) 
     DmaxClean           = Dmax[~np.isnan(NumConNormD)]
+    velClean            = velObs[~np.isnan(NumConNormD)]
     NumConNormDclean    = NumConNormD[~np.isnan(NumConNormD)]
     #somehow they are also in the wrong order -> revert
     DmaxClean           = DmaxClean[::-1]
+    velClean            = velClean[::-1]
     NumConNormDclean    = NumConNormDclean[::-1]
 
     ###calculate integrated variables in physical space
@@ -240,6 +253,7 @@ def crossCheckIntegratedProp(Dmax,NumConNormD,spectrumX,PartType):
     massDistCDF         = np.cumsum(massDistribution*np.gradient(DmaxClean))/IWCretrieval #cumulative distribution function of mass [kg/m^3]
     MassMedianDiam      = float(DmaxClean[np.argwhere(massDistCDF>0.5)[0]])
 
+    print("full PSD")
     print("Nretrieval",Nretrieval,"1/m^3","IWCretrieval",IWCretrieval*1e3,"g/m^3","MassMedianDiam",MassMedianDiam*1e3,"mm")
 
     ##calculate the observed ZeX by integrating the spectrum
@@ -249,5 +263,22 @@ def crossCheckIntegratedProp(Dmax,NumConNormD,spectrumX,PartType):
     ZxFromRetrievedPSD = Ze(DmaxClean, NumConNormDclean, wl, PartType, temperature=273.15) #actual temperature is not considered here
 
     print("ZeXobs: ",ZeXobs,"ZxFromRetrievedPSD",ZxFromRetrievedPSD)
+    if not (vDivide is None):
+        print("\n\nleft of vDivide=" + str(vDivide))
+        biggerThanvDivide   = np.argwhere(velClean>vDivide)
+        if biggerThanvDivide.shape[0]<1 or int(biggerThanvDivide[0])==0:
+            print("ERROR: vDivide is outside of DV range of retrieved PSD")
+            sys.exit()
+        iDivide             = int(biggerThanvDivide[0])
+
+        ###calculate integrated variables in physical space separately for slower/faster part of spectrum
+        NslowerRetrieval    = np.nansum(NumConNormDclean[0:iDivide]*np.gradient(DmaxClean[0:iDivide])) #total number concentration [#/m^ 3]
+        NfasterRetrieval    = np.nansum(NumConNormDclean[iDivide:]*np.gradient(DmaxClean[iDivide:])) #total number concentration [#/m^ 3]
+        massArray, __,__    = snowScatt.snowMassVelocityArea(DmaxClean, PartType) #particle masses at different sizes [m]
+        massDistribution    = NumConNormDclean*massArray #mass distribution [kg/m^3/m]
+        IWCslowerRetrieval  = np.nansum(massDistribution[0:iDivide]*np.gradient(DmaxClean[0:iDivide])) #[kg/m^ 3] integrate to get IWC 
+        IWCfasterRetrieval  = np.nansum(massDistribution[iDivide:]*np.gradient(DmaxClean[iDivide:])) #[kg/m^ 3] integrate to get IWC 
+
+        print("N(DV<vDivide)=",NslowerRetrieval," N(DV>vDivide)=",NfasterRetrieval," IWC(DV<vDivide)=",IWCslowerRetrieval," IWC(DV>vDivide)=",IWCfasterRetrieval)
 
     return None

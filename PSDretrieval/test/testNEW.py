@@ -47,7 +47,7 @@ SpecSingleWshifted  = pR.shiftSpectra(SpecSingle)
 #time2plot = pd.to_datetime('{date} {time}'.format(date=date,time=time))
 SpecOneTime = pR.loadSpectra(date=date,time=time,tRange=0,dataPath="/data/obs/campaigns/tripex-pol/processed/",loadAllHeights=True,loadSample=False)
 pl.plotSpectraObsAllHeights(SpecOneTime)
-plt.show()
+#plt.show()
 
 #plot Spectra and sDWR
 fig,ax = plt.subplots(nrows=1,ncols=1)
@@ -88,6 +88,6 @@ axes3 = pl.plotNumCon(NumConNormV,NumConNormD,axes3,velObs,DmaxAtObsDVgrid*1e3)
 plt.tight_layout()
 
 #do some cross checks
-rU.crossCheckIntegratedProp(DmaxAtObsDVgrid,NumConNormD,SpecSingle.XSpecH,bestPartType)
+rU.crossCheckIntegratedProp(DmaxAtObsDVgrid,NumConNormD,SpecSingle.XSpecH,bestPartType,velObs=velObs,vDivide=1.0)
 
 plt.show()
