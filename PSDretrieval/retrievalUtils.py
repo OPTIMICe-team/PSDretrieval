@@ -282,3 +282,18 @@ def crossCheckIntegratedProp(Dmax,NumConNormD,spectrumX,PartType,velObs=None,vDi
         print("N(DV<vDivide)=",NslowerRetrieval," N(DV>vDivide)=",NfasterRetrieval," IWC(DV<vDivide)=",IWCslowerRetrieval," IWC(DV>vDivide)=",IWCfasterRetrieval)
 
     return None
+def shiftSpecWindow(SpecWindow,westimate):
+    '''
+    shift a window of spectra by the vertical wind information contained in the dataset
+    '''
+
+    if np.isnan(westimate):
+        print("ERROR: cannot shift spectra because W cannot be determined (or is NaN for another reason)")
+        sys.exit(0)
+    #get Doppler velocity resolution
+    DelDV = (SpecWindow.doppler[1]-SpecWindow.doppler[0]).values #[m/s]
+    dopplerBinShifts = int(round(westimate/DelDV))
+    
+    SpecWindow = SpecWindow.shift(doppler=-dopplerBinShifts)
+
+    return SpecWindow
